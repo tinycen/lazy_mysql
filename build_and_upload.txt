@@ -1,0 +1,5 @@
+# build wheel 包
+python setup.py sdist bdist_wheel
+
+# upload PyPI
+twine upload --config-file .pypirc dist/*

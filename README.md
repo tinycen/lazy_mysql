@@ -13,7 +13,7 @@ A lightweight Python library for simplified MySQL database operations.
 ## Installation
 
 ```bash
-pip install -e .
+pip install lazy-mysql
 ```
 
 ## Quick Start

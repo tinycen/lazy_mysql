@@ -1,1 +1,6 @@
 *.pyc
+/build
+/dist
+/lazy_mysql.egg-info
+.pypirc
+upload_dist.txt
