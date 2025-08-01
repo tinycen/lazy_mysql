@@ -17,7 +17,7 @@ setup(
     ],
     author='tinycen',
     author_email='sky_ruocen@qq.com',
-    description='A lazy MySQL client for Python',
+    description='A lazy MySQL client for Python.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/tinycen/lazy_mysql',
