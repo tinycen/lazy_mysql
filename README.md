@@ -39,10 +39,5 @@ print(result)
 executor.insert('users', {'name': 'John', 'age': 30}, commit=True)
 ```
 
-## 文档
-
-详细使用方法请参考各模块文档。
-
-## 贡献
-
-欢迎提交Pull Request或Issue。
+## License
+This project is licensed under the MIT License.
