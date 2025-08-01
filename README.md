@@ -50,6 +50,5 @@ executor.insert('users', {'name': 'John', 'age': 30}, commit=True)
 
 For detailed usage, please refer to module documentation.
 
-## Contributing
-
-Pull requests and issues are welcome.
+## License
+This project is licensed under the MIT License.
