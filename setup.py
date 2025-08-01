@@ -5,7 +5,7 @@ try:
     with open('README.md', 'r', encoding='utf-8') as f:
         long_description = f.read()
 except FileNotFoundError:
-    long_description = 'A lazy MySQL client for Python'
+    long_description = 'A lazy MySQL client for Python.'
 
 setup(
     name='lazy_mysql',
