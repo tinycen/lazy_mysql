@@ -2,26 +2,33 @@
 
 A lightweight Python library for simplified MySQL database operations.
 
-## 功能特性
+## Features
 
-- 统一的SQL执行接口
-- 支持表结构导出为Markdown格式
-- 提供查询结果格式化功能
-- 简化插入、更新、查询操作
-- 支持事务处理
+- Unified SQL execution interface
+- Export table structure to Markdown format
+- Query result formatting
+- Simplified insert, update, and select operations
+- Transaction support
 
-## 安装
+## Requirements
+
+- mysql-connector-python>=9.4.0
+- pandas>=2.3.1
+
+Note: Compatibility with versions below these requirements has not been verified.
+
+## Installation
 
 ```bash
 pip install -e .
 ```
 
-## 快速开始
+## Quick Start
 
 ```python
 from lazy_mysql.executor import SQLExecutor
 
-# 初始化连接
+# Initialize connection
 config = {
     'host': 'localhost',
     'user': 'root',
@@ -31,18 +38,18 @@ config = {
 
 executor = SQLExecutor(config)
 
-# 查询示例
+# Query example
 result = executor.select('users', ['id', 'name'])
 print(result)
 
-# 插入示例
+# Insert example
 executor.insert('users', {'name': 'John', 'age': 30}, commit=True)
 ```
 
-## 文档
+## Documentation
 
-详细使用方法请参考各模块文档。
+For detailed usage, please refer to module documentation.
 
-## 贡献
+## Contributing
 
-欢迎提交Pull Request或Issue。
+Pull requests and issues are welcome.
