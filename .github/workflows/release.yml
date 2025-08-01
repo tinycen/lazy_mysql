@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'  # 只在推送 v1.0.0、v1.2.3 等标签时触发
 
+permissions:
+  contents: write  # 👈 关键：允许发布 GitHub release
+
 jobs:
   build-test-publish:
     runs-on: ubuntu-latest
@@ -54,5 +57,3 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: dist/*
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
