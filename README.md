@@ -1,6 +1,6 @@
 # lazy_mysql
 
-一个简化MySQL数据库操作的Python工具库，提供便捷的CRUD操作接口。
+A lightweight Python library for simplified MySQL database operations.
 
 ## 功能特性
 
