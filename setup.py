@@ -12,8 +12,8 @@ setup(
     version='0.1.1',
     packages=find_packages(),
     install_requires=[
-        'mysql-connector-python>=8.0.0',
-        'pandas>=1.0.0',
+        'mysql-connector-python>=9.4.0',
+        'pandas>=2.3.1',
     ],
     author='tinycen',
     author_email='sky_ruocen@qq.com',
@@ -26,7 +26,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
     ],
-    python_requires='>=3.7',
+    python_requires='>=3.10',
     include_package_data=True,
     zip_safe=False,
 )
