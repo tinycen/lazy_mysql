@@ -1,0 +1,56 @@
+name: Build, Test & Publish lazy-mysql
+
+on:
+  push:
+    tags:
+      - 'v*'  # 只在推送 v1.0.0、v1.2.3 等标签时触发
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.10'
+
+    - name: Add conda to system path
+      run: echo $CONDA/bin >> $GITHUB_PATH
+
+    - name: Install dependencies
+      run: conda env update --file environment.yml --name base
+
+    - name: Lint with flake8
+      run: |
+        conda install -y flake8
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Test with pytest
+      run: |
+        conda install -y pytest
+        pytest
+
+    - name: Build package
+      run: |
+        conda install -y pip
+        pip install setuptools wheel twine
+        python setup.py sdist bdist_wheel
+
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        twine upload dist/*
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
