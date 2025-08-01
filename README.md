@@ -10,13 +10,6 @@ A lightweight Python library for simplified MySQL database operations.
 - Simplified insert, update, and select operations
 - Transaction support
 
-## Requirements
-
-- mysql-connector-python>=9.4.0
-- pandas>=2.3.1
-
-Note: Compatibility with versions below these requirements has not been verified.
-
 ## Installation
 
 ```bash
@@ -45,6 +38,14 @@ print(result)
 # Insert example
 executor.insert('users', {'name': 'John', 'age': 30}, commit=True)
 ```
+
+## Requirements
+
+- mysql-connector-python>=9.4.0
+- pandas>=2.3.1
+
+Note: Compatibility with versions below these requirements has not been verified.
+
 
 ## License
 This project is licensed under the MIT License.
