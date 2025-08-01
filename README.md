@@ -10,10 +10,14 @@ A lightweight Python library for simplified MySQL database operations.
 - Simplified insert, update, and select operations
 - Transaction support
 
-## Installation
+## Install / uninstall
 
 ```bash
 pip install lazy-mysql
+```
+
+```bash
+pip uninstall lazy-mysql
 ```
 
 ## Quick Start
