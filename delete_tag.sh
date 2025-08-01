@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# bash delete_tag.sh
+
 # 定义要删除的标签
 TAG_NAME="v0.1.1"
 

@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# bash create_tag.sh
+
 # 定义要创建的标签
 TAG_NAME="v0.1.1"
 
