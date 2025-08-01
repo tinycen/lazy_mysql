@@ -57,23 +57,6 @@ class MySQLConfig:
     def __repr__(self):
         return f"MySQLConfig(host='{self.host}', port={self.port}, user='{self.user}', default_database='{self.default_database}')"
 
-
-class SQLiteConfig:
-    """SQLite数据库配置类（预留）"""
-    
-    def __init__(self, database_path):
-        """
-        初始化SQLite配置
-        
-        Args:
-            database_path (str): 数据库文件路径
-        """
-        self.database_path = database_path
-    
-    def __repr__(self):
-        return f"SQLiteConfig(database_path='{self.database_path}')"
-
-
 # 默认配置
 DEFAULT_MYSQL_CONFIG = MySQLConfig()
 '''
