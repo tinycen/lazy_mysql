@@ -23,21 +23,22 @@ from lazy_mysql.executor import SQLExecutor
 
 # Initialize connection
 config = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': 'password',
-    'database': 'test_db'
+    'host': 'your_mysql_host',
+    'user': 'your_username',
+    'password': 'your_password',
+    'database': 'your_database'
 }
 
 executor = SQLExecutor(config)
 
 # Query example
-result = executor.select('users', ['id', 'name'])
+result = executor.select('your_table', ['column1', 'column2'])
 print(result)
 
 # Insert example
-executor.insert('users', {'name': 'John', 'age': 30}, commit=True)
+executor.insert('your_table', {'column1': 'value1', 'column2': 'value2'}, commit=True)
 ```
+
 
 ## Requirements
 
