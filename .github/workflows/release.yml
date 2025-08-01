@@ -24,6 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
+        pip install -e .  # 关键：安装项目本身
     
     - name: Lint with flake8
       run: |
