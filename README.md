@@ -46,9 +46,5 @@ print(result)
 executor.insert('users', {'name': 'John', 'age': 30}, commit=True)
 ```
 
-## Documentation
-
-For detailed usage, please refer to module documentation.
-
 ## License
 This project is licensed under the MIT License.
