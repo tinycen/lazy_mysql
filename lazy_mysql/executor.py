@@ -7,6 +7,10 @@ class SQLExecutor :
     def __init__( self , sql_config ,database=None) :
         self.mydb , self.mycursor = connection( sql_config,database )
 
+    # 关闭数据库连接
+    def close( self ) :
+        self.mydb.close()
+        self.mycursor.close()
 
     # sql 语句执行器
     def execute( self , sql , params = None , commit = False , self_close = False ) :
@@ -29,7 +33,7 @@ class SQLExecutor :
             raise Exception( f"SQL执行失败: {str( e )}" )
 
         if self_close :
-            self.mydb.close()
+            self.close()
 
 
     # 将 table 中的字段和字段类型，导出为md格式文件
@@ -162,4 +166,3 @@ class SQLExecutor :
         
         result = self.fetch_format(sql, fetch_mode, output_format, show_count, data_label, params, self_close)
         return result
-
