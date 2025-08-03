@@ -55,6 +55,8 @@ executor.insert('your_table', {'column1': 'value1', 'column2': 'value2'}, commit
 
 Note: Compatibility with versions below these requirements has not been verified.
 
+## PyPI
+Project available on PyPI: https://pypi.org/project/lazy-mysql/
 
 ## License
 This project is licensed under the MIT License.

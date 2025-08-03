@@ -3,7 +3,7 @@
 # bash delete_tag.sh
 
 # 定义要删除的标签
-TAG_NAME="v0.1.1"
+TAG_NAME="v0.1.2"
 
 # 删除本地标签
 git tag -d $TAG_NAME
