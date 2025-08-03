@@ -25,6 +25,7 @@ class SQLExecutor :
             # 如果发生错误，回滚事务
             if commit :
                 self.mydb.rollback()
+            self.mydb.close()
             raise Exception( f"SQL执行失败: {str( e )}" )
 
         if self_close :
