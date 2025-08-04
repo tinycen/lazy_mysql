@@ -52,8 +52,13 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
         is_primary = "是" if field_name in primary_keys else "-"
         field_indexes = []
         for index_name, columns in indexes.items():
-            if field_name in columns:
-                field_indexes.append(index_name)
+            if field_name in columns and index_name != "PRIMARY":
+                # 获取索引类型
+                executor.execute(f"SHOW INDEX FROM {table_name} WHERE Key_name = '{index_name}'", self_close=False)
+                index_info = executor.mycursor.fetchone()
+                # Non_unique字段: 0表示唯一索引(UNIQUE), 1表示普通索引
+                index_type = "UNIQUE(唯一索引)" if index_info[1] == 0 else "INDEX(普通索引)"
+                field_indexes.append(f"{index_name} / {index_type}")
         indexes_str = ", ".join(field_indexes) if field_indexes else "-"
         md_content += f"| {field_name} | {field_type} | {field_comment} | {is_primary} | {indexes_str} |\n"
 
