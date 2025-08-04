@@ -34,10 +34,9 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
     executor.execute(f"SHOW INDEX FROM {table_name}", self_close=False)
     indexes = {}
     for row in executor.mycursor.fetchall():
-        if row[2] != 'PRIMARY':
-            if row[2] not in indexes:
-                indexes[row[2]] = []
-            indexes[row[2]].append(row[4])
+        if row[2] not in indexes:
+            indexes[row[2]] = []
+        indexes[row[2]].append(row[4])
     
     if self_close:
         executor.close()
@@ -50,12 +49,12 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
     md_content += "| --- | --- | --- | --- | --- |\n"
     for row in result:
         field_name, field_type, field_comment = row
-        is_primary = "是" if field_name in primary_keys else "否"
+        is_primary = "是" if field_name in primary_keys else "-"
         field_indexes = []
         for index_name, columns in indexes.items():
             if field_name in columns:
                 field_indexes.append(index_name)
-        indexes_str = ", ".join(field_indexes) if field_indexes else "无"
+        indexes_str = ", ".join(field_indexes) if field_indexes else "-"
         md_content += f"| {field_name} | {field_type} | {field_comment} | {is_primary} | {indexes_str} |\n"
 
     # 写入Markdown文件
