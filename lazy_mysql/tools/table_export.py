@@ -32,38 +32,78 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
     
     # 获取索引信息
     executor.execute(f"SHOW INDEX FROM {table_name}", self_close=False)
+    index_results = executor.mycursor.fetchall()
+    
+    # 处理索引信息，按索引名分组
     indexes = {}
-    for row in executor.mycursor.fetchall():
-        if row[2] not in indexes:
-            indexes[row[2]] = []
-        indexes[row[2]].append(row[4])
+    for row in index_results:
+        index_name = row[2]  # Key_name
+        column_name = row[4]  # Column_name
+        non_unique = row[1]   # Non_unique (0=唯一索引, 1=普通索引)
+        seq_in_index = row[3] # Seq_in_index (索引中的列顺序)
+        
+        if index_name not in indexes:
+            indexes[index_name] = {
+                'columns': [],
+                'is_unique': non_unique == 0,
+                'type': 'PRIMARY' if index_name == 'PRIMARY' else ('UNIQUE' if non_unique == 0 else 'INDEX')
+            }
+        
+        # 按序号插入列名，确保复合索引的列顺序正确
+        while len(indexes[index_name]['columns']) < seq_in_index:
+            indexes[index_name]['columns'].append(None)
+        
+        if seq_in_index <= len(indexes[index_name]['columns']):
+            indexes[index_name]['columns'][seq_in_index - 1] = column_name
+        else:
+            indexes[index_name]['columns'].append(column_name)
     
     if self_close:
         executor.close()
 
     # 解析结果(取Field,Type,Comment字段)
     result = [(row[0], row[1], row[8]) for row in result]
-    # 解析结果并生成Markdown内容
+    
+    # 生成Markdown内容
     md_content = f"## {table_name} 表结构\n\n"
-    md_content += "| 字段名 | 字段类型 | 字段描述 | 是否主键 | 索引 |\n"
-    md_content += "| --- | --- | --- | --- | --- |\n"
+    
+    # 字段信息表
+    md_content += "### 字段信息\n\n"
+    md_content += "| 字段名 | 字段类型 | 字段描述 | 是否主键 |\n"
+    md_content += "| --- | --- | --- | --- |\n"
     for row in result:
         field_name, field_type, field_comment = row
         is_primary = "是" if field_name in primary_keys else "-"
-        field_indexes = []
-        # 如果是主键，添加主键索引标识
-        if field_name in primary_keys:
-            field_indexes.append("PRIMARY / PRIMARY KEY")
-        for index_name, columns in indexes.items():
-            if field_name in columns and index_name != "PRIMARY":
-                # 获取索引类型
-                executor.execute(f"SHOW INDEX FROM {table_name} WHERE Key_name = '{index_name}'", self_close=False)
-                index_info = executor.mycursor.fetchone()
-                # Non_unique字段: 0表示唯一索引(UNIQUE), 1表示普通索引
-                index_type = "UNIQUE(唯一索引)" if index_info[1] == 0 else "INDEX(普通索引)"
-                field_indexes.append(f"{index_name} / {index_type}")
-        indexes_str = ", ".join(field_indexes) if field_indexes else "-"
-        md_content += f"| {field_name} | {field_type} | {field_comment} | {is_primary} | {indexes_str} |\n"
+        field_comment = field_comment if field_comment else "-"
+        md_content += f"| {field_name} | {field_type} | {field_comment} | {is_primary} |\n"
+    
+    # 索引信息表
+    if indexes:
+        md_content += "\n### 索引信息\n\n"
+        md_content += "| 索引名 | 索引类型 | 包含字段 | 备注 |\n"
+        md_content += "| --- | --- | --- | --- |\n"
+        
+        for index_name, index_info in indexes.items():
+            # 过滤掉None值并连接列名
+            columns = [col for col in index_info['columns'] if col is not None]
+            columns_str = ", ".join(columns)
+            
+            index_type = index_info['type']
+            if index_type == 'PRIMARY':
+                type_desc = "主键"
+                remark = "主键索引"
+            elif index_type == 'UNIQUE':
+                type_desc = "唯一索引"
+                remark = "保证字段值唯一性"
+            else:
+                type_desc = "普通索引"
+                remark = "提高查询性能"
+            
+            # 如果是复合索引，在备注中说明
+            if len(columns) > 1:
+                remark += f"（复合索引，共{len(columns)}个字段）"
+            
+            md_content += f"| {index_name} | {type_desc} | {columns_str} | {remark} |\n"
 
     # 写入Markdown文件
     if save_path is None :

@@ -6,7 +6,7 @@ def insert(executor: SQLExecutor, table_name, insert_fields, skip_duplicate=Fals
     :param executor: SQLExecutor 实例
     :param table_name: 表名
     :param insert_fields: 字段和值，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
-    :param skip_duplicate: 是否跳过重复数据(基于主键或唯一索引判断)
+    :param skip_duplicate: 是否跳过重复数据--基于主键或唯一索引(包含唯一复合索引)判断
         注意: 只有主键或当索引被明确设置为UNIQUE时才会触发跳过重复记录的行为,普通索引(如INDEX)不会导致跳过重复记录。
     :param commit: 是否自动提交
     :param self_close: 是否自动关闭连接
