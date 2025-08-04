@@ -21,7 +21,8 @@ def insert(executor: SQLExecutor, table_name, insert_fields, commit=False, self_
 # 批量插入数据
 def batch_insert( executor: SQLExecutor, table_name, fields_list, commit=False, self_close=False ) :
     """
-    通用的SQL批量插入执行器方法，
+    通用的SQL批量插入执行器方法,
+    自动跳过重复数据:基于主键或唯一索引判断
     :param table_name: 表名
     :param fields_list: 字段和值的列表，格式为字典列表，如 [{'field1': 'value1', 'field2': 'value2'}, {'field1': 'value3', 'field2': 'value4'}]
     """
@@ -35,7 +36,7 @@ def batch_insert( executor: SQLExecutor, table_name, fields_list, commit=False, 
     placeholders = '(' + ', '.join( [ '%s' ] * len( fields_list[ 0 ] ) ) + ')'
 
     # 构造SQL语句
-    sql = f'''INSERT INTO {table_name} ({field_names}) VALUES {placeholders}'''
+    sql = f'''INSERT IGNORE INTO {table_name} ({field_names}) VALUES {placeholders}'''
 
     # 构造参数列表
     values = [ tuple( item.values() ) for item in fields_list ]

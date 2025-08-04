@@ -1,6 +1,6 @@
 def export_table_md( executor , table_name , save_path = None , self_close = True ) :
     """
-    将 table 中的字段和字段类型，导出为md格式文件
+    将 table 中的字段和字段类型,字段描述,是否主键,索引导出为md格式文件
     :param executor: SQLExecutor 实例
     :param table_name: 表名
     :param save_path: 保存路径
@@ -10,25 +10,47 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
     # 检查表是否存在
     executor.execute(f"SHOW TABLES LIKE '{table_name}'", self_close=False)
     if not executor.mycursor.fetchone():
+        executor.close()
         raise ValueError(f"表 {table_name} 不存在")
         
     # 执行查询获取表结构(使用SHOW FULL COLUMNS)
     query = f"SHOW FULL COLUMNS FROM {table_name}"
     print(f"执行查询: {query}")  # 调试输出
     executor.execute(query , self_close = self_close)
+
     # 获取查询结果
     result = executor.mycursor.fetchall()
     # print(f"原始查询结果: {result}")  # 调试输出
+    
+    # 获取主键信息
+    executor.execute(f"SHOW KEYS FROM {table_name} WHERE Key_name = 'PRIMARY'", self_close=False)
+    primary_keys = [row[4] for row in executor.mycursor.fetchall()]
+    
+    # 获取索引信息
+    executor.execute(f"SHOW INDEX FROM {table_name}", self_close=False)
+    indexes = {}
+    for row in executor.mycursor.fetchall():
+        if row[2] != 'PRIMARY':
+            if row[2] not in indexes:
+                indexes[row[2]] = []
+            indexes[row[2]].append(row[4])
     
     # 解析结果(取Field,Type,Comment字段)
     result = [(row[0], row[1], row[8]) for row in result]
     # 解析结果并生成Markdown内容
     md_content = f"## {table_name} 表结构\n\n"
-    md_content += "| 字段名 | 字段类型 | 字段描述 |\n"
-    md_content += "| --- | --- | --- |\n"
+    md_content += "| 字段名 | 字段类型 | 字段描述 | 是否主键 | 索引 |\n"
+    md_content += "| --- | --- | --- | --- | --- |\n"
     for row in result:
         field_name, field_type, field_comment = row
-        md_content += f"| {field_name} | {field_type} | {field_comment} |\n"
+        is_primary = "是" if field_name in primary_keys else "否"
+        field_indexes = []
+        for index_name, columns in indexes.items():
+            if field_name in columns:
+                field_indexes.append(index_name)
+        indexes_str = ", ".join(field_indexes) if field_indexes else "无"
+        md_content += f"| {field_name} | {field_type} | {field_comment} | {is_primary} | {indexes_str} |\n"
+
     # 写入Markdown文件
     if save_path is None :
         save_path = f"{table_name}.md"
