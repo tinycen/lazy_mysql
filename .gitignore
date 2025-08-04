@@ -4,3 +4,5 @@
 /lazy_mysql.egg-info
 .pypirc
 upload_dist.txt
+local_test.py
+sql_config.py

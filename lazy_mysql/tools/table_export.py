@@ -11,15 +11,19 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
     executor.execute(f"SHOW TABLES LIKE '{table_name}'", self_close=False)
     if not executor.mycursor.fetchone():
         executor.close()
-        raise ValueError(f"表 {table_name} 不存在")
+        raise ValueError(f"{table_name} not exist")
         
     # 执行查询获取表结构(使用SHOW FULL COLUMNS)
     query = f"SHOW FULL COLUMNS FROM {table_name}"
-    print(f"执行查询: {query}")  # 调试输出
-    executor.execute(query , self_close = self_close)
+    print(f"execute: {query}")  # 调试输出
+    # 执行查询但不关闭连接，因为后面还需要获取结果
+    executor.execute(query , self_close = False)
 
     # 获取查询结果
-    result = executor.mycursor.fetchall()
+    if executor.mycursor.with_rows:
+        result = executor.mycursor.fetchall()
+    else:
+        raise ValueError(f"查询 '{query}' 没有返回结果集")
     # print(f"原始查询结果: {result}")  # 调试输出
     
     # 获取主键信息
@@ -27,7 +31,7 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
     primary_keys = [row[4] for row in executor.mycursor.fetchall()]
     
     # 获取索引信息
-    executor.execute(f"SHOW INDEX FROM {table_name}", self_close=False)
+    executor.execute(f"SHOW INDEX FROM {table_name}", self_close=self_close)
     indexes = {}
     for row in executor.mycursor.fetchall():
         if row[2] != 'PRIMARY':
