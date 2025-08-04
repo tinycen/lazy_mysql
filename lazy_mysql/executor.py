@@ -9,8 +9,8 @@ class SQLExecutor :
 
     # 关闭数据库连接
     def close( self ) :
-        self.mydb.close()
         self.mycursor.close()
+        self.mydb.close()
 
     # sql 语句执行器
     def execute( self , sql , params = None , commit = False , self_close = False ) :
