@@ -31,7 +31,7 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
     primary_keys = [row[4] for row in executor.mycursor.fetchall()]
     
     # 获取索引信息
-    executor.execute(f"SHOW INDEX FROM {table_name}", self_close=self_close)
+    executor.execute(f"SHOW INDEX FROM {table_name}", self_close=False)
     indexes = {}
     for row in executor.mycursor.fetchall():
         if row[2] != 'PRIMARY':
@@ -39,6 +39,9 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
                 indexes[row[2]] = []
             indexes[row[2]].append(row[4])
     
+    if self_close:
+        executor.close()
+
     # 解析结果(取Field,Type,Comment字段)
     result = [(row[0], row[1], row[8]) for row in result]
     # 解析结果并生成Markdown内容
