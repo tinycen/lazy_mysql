@@ -63,17 +63,9 @@ class SQLExecutor :
 
 
     # 插入数据
-    def insert( self , table_name , insert_fields , commit = False , self_close = False ) :
-        """
-        通用的SQL插入执行器方法，
-        :param table_name: 表名
-        :param insert_fields: 字段和值，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
-        :param commit: 是否自动提交
-        :param self_close: 是否自动关闭连接
-        :return: None
-        """
+    def insert( self , table_name , insert_fields , skip_duplicate = False, commit = False , self_close = False ) :
         from .utils.insert import insert as insert_func
-        insert_func(self, table_name, insert_fields, commit, self_close)
+        insert_func(self, table_name, insert_fields, skip_duplicate, commit, self_close)
 
 
     # 更新数据
