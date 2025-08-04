@@ -25,7 +25,7 @@ def batch_insert( executor: SQLExecutor, table_name, fields_list, skip_duplicate
     :param table_name: 表名
     :param fields_list: 字段和值的列表，格式为字典列表，如 [{'field1': 'value1', 'field2': 'value2'}, {'field1': 'value3', 'field2': 'value4'}]
     :param skip_duplicate: 是否跳过重复数据(基于主键或唯一索引判断)
-        注意: 只有当索引被明确设置为UNIQUE时才会触发跳过重复记录的行为,普通索引(如INDEX)不会导致跳过重复记录。
+        注意: 只有主键或当索引被明确设置为UNIQUE时才会触发跳过重复记录的行为,普通索引(如INDEX)不会导致跳过重复记录。
     """
     if not fields_list :
         executor.close()
