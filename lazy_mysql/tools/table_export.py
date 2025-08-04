@@ -51,6 +51,9 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
         field_name, field_type, field_comment = row
         is_primary = "是" if field_name in primary_keys else "-"
         field_indexes = []
+        # 如果是主键，添加主键索引标识
+        if field_name in primary_keys:
+            field_indexes.append("PRIMARY / PRIMARY KEY")
         for index_name, columns in indexes.items():
             if field_name in columns and index_name != "PRIMARY":
                 # 获取索引类型
