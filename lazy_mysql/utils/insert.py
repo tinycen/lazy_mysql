@@ -19,14 +19,15 @@ def insert(executor: SQLExecutor, table_name, insert_fields, commit=False, self_
 
 
 # 批量插入数据
-def batch_insert( executor: SQLExecutor, table_name, fields_list, commit=False, self_close=False ) :
+def batch_insert( executor: SQLExecutor, table_name, fields_list, skip_duplicate=True, commit=False, self_close=False ) :
     """
-    通用的SQL批量插入执行器方法,
-    自动跳过重复数据:基于主键或唯一索引判断
+    通用的SQL批量插入执行器方法
     :param table_name: 表名
     :param fields_list: 字段和值的列表，格式为字典列表，如 [{'field1': 'value1', 'field2': 'value2'}, {'field1': 'value3', 'field2': 'value4'}]
+    :param skip_duplicate: 是否跳过重复数据(基于主键或唯一索引判断)
     """
     if not fields_list :
+        executor.close()
         raise ValueError( "fields_list is empty !" )
 
     # 获取字段名（假设所有字典的键相同）
@@ -36,7 +37,8 @@ def batch_insert( executor: SQLExecutor, table_name, fields_list, commit=False, 
     placeholders = '(' + ', '.join( [ '%s' ] * len( fields_list[ 0 ] ) ) + ')'
 
     # 构造SQL语句
-    sql = f'''INSERT IGNORE INTO {table_name} ({field_names}) VALUES {placeholders}'''
+    insert_keyword = 'INSERT IGNORE' if skip_duplicate else 'INSERT'
+    sql = f'''{insert_keyword} INTO {table_name} ({field_names}) VALUES {placeholders}'''
 
     # 构造参数列表
     values = [ tuple( item.values() ) for item in fields_list ]
