@@ -14,38 +14,34 @@ class SQLExecutor :
 
     # sql 语句执行器
     def execute( self , sql , params = None , commit = False , self_close = False ) :
+        """
+        SQL语句执行方法，自动判断是否批量执行
+        :param params: 参数，单个参数为元组，批量参数为元组列表，如 [(value1, value2), (value3, value4)]
+        """
         try :
             if params :
-                self.mycursor.execute( sql , params )
+                # 判断是否为批量参数（列表且第一个元素是元组）
+                if isinstance(params, list) and len(params) > 0 and isinstance(params[0], (tuple, list)):
+                    self.mycursor.executemany(sql, params)
+                else:
+                    self.mycursor.execute(sql, params)
             else :
-                self.mycursor.execute( sql )
+                self.mycursor.execute(sql)
 
             if commit :
                 # 提交事务
                 self.mydb.commit()
 
         except Exception as e :
-            print( f"sql: {sql} \n params:{params}" )
+            print(f"sql: {sql} \n params:{params}")
             # 如果发生错误，回滚事务
             if commit :
                 self.mydb.rollback()
             self.mydb.close()
-            raise Exception( f"SQL执行失败: {str( e )}" )
+            raise Exception(f"SQL execute failed: {str(e)}")
 
         if self_close :
             self.close()
-
-
-    # 将 table 中的字段和字段类型，导出为md格式文件
-    def export_table_md( self , table_name , save_path , self_close = True ) :
-        """
-        将 table 中的字段和字段类型，导出为md格式文件
-        :param table_name: 表名
-        :param self_close: 是否自动关闭连接
-        :return: None
-        """
-        from .tools.table_export import export_table_md as export_table_md_func
-        export_table_md_func(self, table_name, save_path, self_close)
 
 
     # 定义解析结果程序(格式化返回结果)
@@ -166,3 +162,15 @@ class SQLExecutor :
         
         result = self.fetch_format(sql, fetch_mode, output_format, show_count, data_label, params, self_close)
         return result
+
+
+    # 将 table 中的字段和字段类型，导出为md格式文件
+    def export_table_md( self , table_name , save_path , self_close = True ) :
+        """
+        将 table 中的字段和字段类型，导出为md格式文件
+        :param table_name: 表名
+        :param self_close: 是否自动关闭连接
+        :return: None
+        """
+        from .tools.table_export import export_table_md as export_table_md_func
+        export_table_md_func(self, table_name, save_path, self_close)
