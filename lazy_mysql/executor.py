@@ -24,6 +24,9 @@ class SQLExecutor :
                 if isinstance(params, list) and len(params) > 0 and isinstance(params[0], (tuple, list)):
                     self.mycursor.executemany(sql, params)
                 else:
+                    # 如果是列表但不是批量参数，转换为元组
+                    if isinstance(params, list):
+                        params = tuple(params)
                     self.mycursor.execute(sql, params)
             else :
                 self.mycursor.execute(sql)
@@ -131,7 +134,14 @@ class SQLExecutor :
         except Exception as e :
             success = False
             result = { }
-            message = f"sql run failed > {str(e)}"
+            error_msg = str(e)
+            message = f"sql run failed > {error_msg}"
+            if "No result set to fetch from" in error_msg:
+                message += f''' : note > The query statement did not return a result set. 
+                 Please check if the database connection self.mycursor in the pip package was closed prematurely.'''
+            success = False
+            result = { }
+            
         return { "success" : success , "result" : result , "message" : message }
 
     # 支持复杂查询的执行方法

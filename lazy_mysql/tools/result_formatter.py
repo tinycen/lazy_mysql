@@ -14,7 +14,7 @@ def fetch_format( executor , sql , fetch_mode , output_format = "" , show_count 
     :param self_close: 是否自动关闭连接
     :return: 查询结果
     """
-    executor.execute( sql , params , self_close = self_close )
+    executor.execute( sql , params , self_close = False )
 
     if data_label is None :
         data_label = [ ]
@@ -36,7 +36,11 @@ def fetch_format( executor , sql , fetch_mode , output_format = "" , show_count 
         result = executor.mycursor.fetchone()
         myresult = result[ 0 ] if result else None
     else :
+        executor.close()
         raise ValueError( f"fetch_mode error :{fetch_mode} , only supported [ all , oneTuple , one ]" )
+
+    if self_close :
+        executor.close()
 
     if show_count :
         num = len( myresult )
