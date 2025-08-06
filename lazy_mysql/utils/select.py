@@ -80,7 +80,10 @@ def select(executor: SQLExecutor, table_names, select_fields, where_conditions, 
         fetch_config = {}
 
     fetch_mode = fetch_config["fetch_mode"]
-    output_format = fetch_config["output_format"]
+    if fetch_mode != "all" :
+        output_format = ""
+    else :
+        output_format = fetch_config.get("output_format", "")
     show_count = fetch_config.get("show_count", False)
     
     # 获取data_label参数

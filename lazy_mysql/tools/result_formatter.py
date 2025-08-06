@@ -7,7 +7,7 @@ def fetch_format( executor , sql , fetch_mode , output_format = "" , show_count 
     :param executor: SQLExecutor 实例
     :param sql: SQL语句
     :param fetch_mode: 获取模式,可选值: all、oneTuple、one
-    :param output_format: 输出格式 , 可选值: list_1、df、df_dict , 仅在 fetch_mode 为 all 时有效
+    :param output_format: 输出格式 ,默认 "" , 可选值: list_1、df、df_dict , 仅在 fetch_mode 为 all 时有效
     :param show_count: 是否显示结果数量
     :param data_label: 数据标签
     :param params: 参数
@@ -20,7 +20,7 @@ def fetch_format( executor , sql , fetch_mode , output_format = "" , show_count 
         data_label = [ ]
 
     if fetch_mode == "all" :
-        myresult = executor.mycursor.fetchall()  # 接收全部的返回结果行,返回结果为 tuple（元组）
+        myresult = executor.mycursor.fetchall()  # 接收全部的返回结果行,返回结果为 [tuple（元组）]
         if output_format == "list_1" :
             if myresult is None :
                 return [ ]
@@ -31,7 +31,7 @@ def fetch_format( executor , sql , fetch_mode , output_format = "" , show_count 
             if "dict" in output_format :
                 myresult = myresult.to_dict( "records" )
     elif fetch_mode == "oneTuple" :
-        myresult = executor.mycursor.fetchone()  # 接收全部的返回结果行,返回结果为 tuple（元组）
+        myresult = executor.mycursor.fetchone()  # 接收返回结果行,返回结果为 tuple（元组）,如果没有结果,则仅返回 None
     elif fetch_mode == "one" :
         result = executor.mycursor.fetchone()
         myresult = result[ 0 ] if result else None
