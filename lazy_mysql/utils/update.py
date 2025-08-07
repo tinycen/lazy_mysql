@@ -17,7 +17,12 @@ def update(executor: SQLExecutor, table_name, update_fields, where_conditions, c
     set_clause = ', '.join([f"{field} = %s" for field in update_fields.keys()])
 
     # 构造WHERE子句
-    where_clause, params = build_where_clause(where_conditions)
+    where_clause, where_params = build_where_clause(where_conditions)
+
+    # 合并参数：update_fields的值 + where_conditions的值
+    params = list(update_fields.values())
+    if where_params:
+        params.extend(where_params)
 
     # 构造SQL语句
     sql = f'''UPDATE {table_name} SET {set_clause} WHERE {where_clause};'''
