@@ -12,6 +12,11 @@ class SQLExecutor :
         self.mycursor.close()
         self.mydb.close()
 
+    # 提交并关闭数据库连接
+    def commit_close( self ) :
+        self.mydb.commit()
+        self.close()
+
     # sql 语句执行器
     def execute( self , sql , params = None , commit = False , self_close = False ) :
         """
@@ -85,6 +90,20 @@ class SQLExecutor :
         """
         from .utils.update import update as update_func
         update_func(self, table_name, update_fields, where_conditions, commit, self_close)
+
+    # 删除数据
+    def delete( self , table_name , where_conditions , commit = False , self_close = False ) :
+        """
+        通用的SQL删除执行器方法，支持动态构造WHERE子句
+
+        :param table_name: 表名
+        :param where_conditions: WHERE条件，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
+        :param commit: 是否自动提交
+        :param self_close: 是否自动关闭连接
+        :return: None
+        """
+        from .utils.delete import delete as delete_func
+        delete_func(self, table_name, where_conditions, commit, self_close)
 
 
     # 选择数据
