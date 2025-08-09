@@ -35,7 +35,7 @@ def connection(sql_config, database=None, max_retries=5, retry_delay_base=5):
             # 如果设置了 pool_reset_session 就必须设置 pool_name ，省略会报错- AttributeError: 
             # Pool name 'rm-wz93y5aqe2f5gvu5uto.mysql.rds.aliyuncs.com_3306_root_yqq_new_schema' is too long
             # use_pure=True - 使用纯Python实现而非C扩展，提高兼容性，减少外部依赖（实测，设置在为False会导致连接失败！）
-
+            # local_infile=True - 启用LOAD DATA LOCAL INFILE功能，允许从本地文件加载数据
             mydb = mysql.connector.connect(
                 host=sql_config.host,
                 port=sql_config.port,
@@ -43,7 +43,8 @@ def connection(sql_config, database=None, max_retries=5, retry_delay_base=5):
                 password=sql_config.passwd,
                 database=database,
                 buffered=True,
-                use_pure=True
+                use_pure=True,
+                local_infile=True  
             )
             mycursor = mydb.cursor(buffered=True)
             
