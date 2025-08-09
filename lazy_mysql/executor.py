@@ -72,8 +72,25 @@ class SQLExecutor :
 
     # 插入数据
     def insert( self , table_name , insert_fields , skip_duplicate = False, commit = False , self_close = False ) :
+        """
+        智能插入数据到指定表，根据数据量自动选择最优插入策略
+
+        策略选择：
+        - 单条数据（dict）: 使用传统insert
+        - 数据量 < 1000条: 使用现有executemany
+        - 1000-50000条: 使用优化executemany（分批1000条）
+        - 50000-100000条: 使用优化executemany（分批5000条）
+        - 数据量 >= 100000条: 使用LOAD DATA INFILE（分批50000条）
+
+        :param table_name: 表名
+        :param insert_fields: 字段和值，格式为字典或字典列表，如 {'field1': 'value1', 'field2': 'value2'} 或 [{'field1': 'value1'}, {'field1': 'value2'}]
+        :param skip_duplicate: 是否跳过重复数据
+        :param commit: 是否自动提交
+        :param self_close: 是否自动关闭连接
+        :return: 插入成功的记录数（int）
+        """
         from .utils.insert import insert as insert_func
-        insert_func(self, table_name, insert_fields, skip_duplicate, commit, self_close)
+        return insert_func(self, table_name, insert_fields, skip_duplicate, commit, self_close)
 
 
     # 更新数据
