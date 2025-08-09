@@ -44,7 +44,7 @@ def connection(sql_config, database=None, max_retries=5, retry_delay_base=5):
                 database=database,
                 buffered=True,
                 use_pure=True,
-                local_infile=True  
+                allow_local_infile=True  
             )
             mycursor = mydb.cursor(buffered=True)
             
