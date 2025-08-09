@@ -70,7 +70,7 @@ def insert(executor: SQLExecutor, table_name, insert_fields, skip_duplicate=Fals
         return insert_num
     
     else:
-        if self_close:
+        if self_close and commit :
             executor.close()
         raise ValueError("insert_fields must be a dict or a list of dicts")
 
@@ -122,43 +122,31 @@ def _bulk_insert_load_data(executor: SQLExecutor, table_name, insert_fields, ski
                 
                 tmp_file_path = tmp_file.name
             
+            # 构造LOAD DATA语句
+            load_sql = f"""
+            LOAD DATA LOCAL INFILE '{tmp_file_path.replace(os.sep, '/')}'
+            INTO TABLE {table_name}
+            FIELDS TERMINATED BY ','
+            OPTIONALLY ENCLOSED BY '"'
+            LINES TERMINATED BY '\n'
+            ({fields_str})
+            """
+            
+            if skip_duplicate:
+                load_sql += " IGNORE"
+            
+            # 执行批量插入 - executor.execute已处理异常和提交
+            executor.execute(load_sql, commit=commit)
+            inserted_count += len(batch_data)
+            
+            # 清理临时文件
             try:
-                # 构造LOAD DATA语句
-                load_sql = f"""
-                LOAD DATA LOCAL INFILE '{tmp_file_path.replace(os.sep, '/')}'
-                INTO TABLE {table_name}
-                FIELDS TERMINATED BY ','
-                OPTIONALLY ENCLOSED BY '"'
-                LINES TERMINATED BY '\n'
-                ({fields_str})
-                """
-                
-                if skip_duplicate:
-                    load_sql += " IGNORE"
-                
-                # 执行批量插入
-                executor.execute(load_sql, commit=False)
-                inserted_count += len(batch_data)
-                
-                # 每批完成后提交
-                if commit:
-                    executor.mydb.commit()
-                    
-            except Exception as e:
-                # 发生错误时回滚
-                if commit:
-                    executor.mydb.rollback()
-                raise Exception(f"Batch insert failed at records {batch_start}-{batch_end}: {str(e)}")
-                
-            finally:
-                # 清理临时文件
-                try:
-                    os.unlink(tmp_file_path)
-                except OSError:
-                    pass  # 忽略文件删除错误
+                os.unlink(tmp_file_path)
+            except OSError:
+                pass  # 忽略文件删除错误
     
     finally:
-        if self_close:
+        if self_close and commit :
             executor.close()
     
     return inserted_count
@@ -186,21 +174,12 @@ def _executemany_optimized(executor: SQLExecutor, table_name, insert_fields, ski
             
             values = [tuple(item.values()) for item in batch_data]
             
-            try:
-                executor.execute(sql, values, commit=False)
-                inserted_count += len(batch_data)
-                
-                # 分批提交
-                if commit and (batch_end >= total_records):
-                    executor.mydb.commit()
-                    
-            except Exception as e:
-                if commit:
-                    executor.mydb.rollback()
-                raise Exception(f"Batch insert failed at records {batch_start}-{batch_end}: {str(e)}")
+            # 执行批量插入 - executor.execute已处理异常和提交
+            executor.execute(sql, values, commit=commit)
+            inserted_count += len(batch_data)
     
     finally:
-        if self_close:
+        if self_close and commit :
             executor.close()
     
     return inserted_count
