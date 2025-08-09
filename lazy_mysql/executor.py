@@ -48,7 +48,8 @@ class SQLExecutor :
             self.mydb.close()
             raise Exception(f"SQL execute failed: {str(e)}")
 
-        if self_close :
+        # 改为仅在提交成功时关闭连接，避免数据未提交就关闭连接
+        if self_close and commit :
             self.close()
 
 
