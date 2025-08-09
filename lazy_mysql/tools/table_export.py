@@ -34,6 +34,12 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
     executor.execute(f"SHOW INDEX FROM {table_name}", self_close=False)
     index_results = executor.mycursor.fetchall()
     
+    # 获取表的字符集和排序规则信息
+    executor.execute(f"SHOW TABLE STATUS LIKE '{table_name}'", self_close=False)
+    table_status = executor.mycursor.fetchone()
+    table_charset = table_status[14] if table_status and len(table_status) > 14 else "未知"
+    table_collation = table_status[15] if table_status and len(table_status) > 15 else "未知"
+    
     # 处理索引信息，按索引名分组
     indexes = {}
     for row in index_results:
@@ -61,21 +67,27 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
     if self_close:
         executor.close()
 
-    # 解析结果(取Field,Type,Comment字段)
-    result = [(row[0], row[1], row[8]) for row in result]
+    # 解析结果(取Field,Type,Collation,Comment字段)
+    result = [(row[0], row[1], row[2], row[8]) for row in result]
     
     # 生成Markdown内容
     md_content = f"## {table_name} 表结构\n\n"
     
+    # 表级编码信息
+    md_content += "### 表信息\n\n"
+    md_content += f"- **字符集**: {table_charset}\n"
+    md_content += f"- **排序规则**: {table_collation}\n\n"
+    
     # 字段信息表
     md_content += "### 字段信息\n\n"
-    md_content += "| 字段名 | 字段类型 | 字段描述 | 是否主键 |\n"
-    md_content += "| --- | --- | --- | --- |\n"
+    md_content += "| 字段名 | 字段类型 | 编码/排序规则 | 字段描述 | 是否主键 |\n"
+    md_content += "| --- | --- | --- | --- | --- |\n"
     for row in result:
-        field_name, field_type, field_comment = row
+        field_name, field_type, collation, field_comment = row
         is_primary = "是" if field_name in primary_keys else "-"
         field_comment = field_comment if field_comment else "-"
-        md_content += f"| {field_name} | {field_type} | {field_comment} | {is_primary} |\n"
+        collation = collation if collation else "-"
+        md_content += f"| {field_name} | {field_type} | {collation} | {field_comment} | {is_primary} |\n"
     
     # 索引信息表
     if indexes:
