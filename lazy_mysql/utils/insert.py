@@ -97,12 +97,18 @@ def _bulk_insert_load_data(executor: SQLExecutor, table_name, insert_fields, ski
     
     total_records = len(insert_fields)
     inserted_count = 0
+    total_batches = (total_records - 1) // batch_size + 1
+    
+    print(f"[LOAD DATA] Starting to process - total_records : {total_records} , total_batches : {total_batches}, batch_size : {batch_size} records")
     
     try:
         # 分批处理，避免单次文件过大
         for batch_start in range(0, total_records, batch_size):
             batch_end = min(batch_start + batch_size, total_records)
             batch_data = insert_fields[batch_start:batch_end]
+            batch_num = batch_start // batch_size + 1
+            
+            print(f"[LOAD DATA] Processing batch {batch_num}/{total_batches} ({batch_start}-{batch_end-1})...")
             
             # 创建临时CSV文件
             with tempfile.NamedTemporaryFile(
@@ -139,6 +145,8 @@ def _bulk_insert_load_data(executor: SQLExecutor, table_name, insert_fields, ski
             executor.execute(load_sql, commit=commit)
             inserted_count += len(batch_data)
             
+            print(f"[LOAD DATA] Batch {batch_num}/{total_batches} completed, inserted {inserted_count}/{total_records} records")
+            
             # 清理临时文件
             try:
                 os.unlink(tmp_file_path)
@@ -149,6 +157,7 @@ def _bulk_insert_load_data(executor: SQLExecutor, table_name, insert_fields, ski
         if self_close and commit :
             executor.close()
     
+    print(f"[LOAD DATA] All completed! Total {inserted_count} records inserted")
     return inserted_count
 
 
@@ -166,20 +175,29 @@ def _executemany_optimized(executor: SQLExecutor, table_name, insert_fields, ski
     total_records = len(insert_fields)
     sql = _build_insert_sql(table_name, insert_fields[0].keys(), skip_duplicate)
     inserted_count = 0
+    total_batches = (total_records - 1) // batch_size + 1
+    
+    print(f"[executemany] Starting to process - total_records : {total_records} , total_batches : {total_batches}, batch_size : {batch_size} records")
     
     try:
         for batch_start in range(0, total_records, batch_size):
             batch_end = min(batch_start + batch_size, total_records)
             batch_data = insert_fields[batch_start:batch_end]
+            batch_num = batch_start // batch_size + 1
+            
+            print(f"[executemany] Processing batch {batch_num}/{total_batches} ({batch_start}-{batch_end-1})...")
             
             values = [tuple(item.values()) for item in batch_data]
             
             # 执行批量插入 - executor.execute已处理异常和提交
             executor.execute(sql, values, commit=commit)
             inserted_count += len(batch_data)
+            
+            print(f"[executemany] Batch {batch_num}/{total_batches} completed, inserted {inserted_count}/{total_records} records")
     
     finally:
         if self_close and commit :
             executor.close()
     
+    print(f"[executemany] All completed! Total {inserted_count} records inserted")
     return inserted_count
