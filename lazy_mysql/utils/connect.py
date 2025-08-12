@@ -72,7 +72,7 @@ def connection(sql_config, database=None, max_retries=5, retry_delay_base=5):
             if retry_count < max_retries:
                 retry_count += 1
                 delay = retry_delay_base * retry_count
-                print(f"连接超时，正在进行第 {retry_count}/{max_retries} 次重试，等待 {delay} 秒...")
+                print(f"MySQL 连接超时，正在进行第 {retry_count}/{max_retries} 次重试，等待 {delay} 秒...")
                 time.sleep(delay)
             else:
                 break
