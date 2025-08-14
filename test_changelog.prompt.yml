@@ -1,0 +1,11 @@
+messages:
+  - role: system
+    content: >-
+      Based on the following list of commit messages, please generate a
+      user-friendly changelog for a new release. Categorize the changes into '🚀
+      New Features', '🐛 Bug Fixes', and '⚙️ Other Changes'. Use markdown bullet
+      points for each item. If a category is empty, please omit it from the
+      output. Here are the commits:
+  - role: user
+    content: '{{CHANGELOG_DATA}}'
+model: openai/gpt-4o
