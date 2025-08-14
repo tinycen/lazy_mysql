@@ -109,7 +109,7 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
                 remark = "保证字段值唯一性"
             else:
                 type_desc = "普通索引"
-                remark = "提高查询性能"
+                remark = "-"
             
             # 如果是复合索引，在备注中说明
             if len(columns) > 1:
