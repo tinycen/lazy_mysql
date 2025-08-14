@@ -76,7 +76,14 @@ jobs:
         $COMMIT_LOG
         EOF
         )
-        
+
+        # -----------------------------------------------------------------
+        # 新增：专门用于调试，打印变量内容到日志
+        echo "--- Content being set for the next step ---"
+        echo "$CHANGELOG_CONTENT"
+        echo "-------------------------------------------"
+        # -----------------------------------------------------------------
+      
         # 将处理好的 changelog 设置为 step 的输出
         echo "changelog_for_ai<<EOF" >> $GITHUB_OUTPUT
         echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
@@ -101,7 +108,7 @@ jobs:
           --arg prompt "$PROMPT" \
           --arg commits "$CHANGELOG_DATA" \
           '{
-            "model": "openai/gpt-5-nano",
+            "model": "openai/gpt-4o",
             "messages": [
               {
                 "role": "system",
@@ -121,7 +128,14 @@ jobs:
              -H "Content-Type: application/json" \
              -H "Authorization: Bearer $GITHUB_TOKEN" \
              -d "$JSON_PAYLOAD")
-        
+
+        # =======================================================
+        # === 新增的调试步骤：打印从 API 收到的原始响应 ===
+        echo "--- Raw AI Response Start ---"
+        echo "$AI_RESPONSE"
+        echo "--- Raw AI Response End ---"
+        # =======================================================
+
         # 从 AI 响应中提取内容，并设置为 step 的输出
         RELEASE_BODY=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content')
         
