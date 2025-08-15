@@ -1,4 +1,6 @@
-def export_table_md( executor , table_name , save_path = None , self_close = True ) :
+import os
+
+def table_md(executor, table_name, save_path=None, self_close=True):
     """
     将 table 中的字段和字段类型,字段描述,是否主键,索引导出为md格式文件
     :param executor: SQLExecutor 实例
@@ -15,9 +17,9 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
         
     # 执行查询获取表结构(使用SHOW FULL COLUMNS)
     query = f"SHOW FULL COLUMNS FROM {table_name}"
-    print(f"execute: {query}")  # 调试输出
+    # print(f"execute: {query}")  # 调试输出
     # 执行查询但不关闭连接，因为后面还需要获取结果
-    executor.execute(query , self_close = False)
+    executor.execute(query, self_close=False)
 
     # 获取查询结果
     if executor.mycursor.with_rows:
@@ -119,7 +121,60 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
             md_content += f"| {index_name} | {type_desc} | {columns_str} | {remark} |\n"
 
     # 写入Markdown文件
-    if save_path is None :
+    if save_path is None:
         save_path = f"{table_name}.md"
     with open(save_path, 'w', encoding='utf-8') as md_file:
         md_file.write(md_content)
+
+
+def tables_md(executor, table_names=None, save_dir=None, self_close=True):
+    """
+    批量导出表结构为md格式文件
+    :param executor: SQLExecutor 实例
+    :param table_names: 表名列表，如果为None或空列表则导出所有表
+    :param save_dir: 保存目录路径，默认为当前目录下的table_docs文件夹
+    :param self_close: 是否自动关闭连接
+    :return: 导出的表名列表
+    """
+    try:
+        # 获取所有表名
+        if table_names is None or len(table_names) == 0:
+            executor.execute("SHOW TABLES", self_close=False)
+            all_tables = [row[0] for row in executor.mycursor.fetchall()]
+            table_names = all_tables
+        
+        if not table_names:
+            print("No tables found.")
+            return []
+            
+        # 设置保存目录
+        if save_dir is None:
+            save_dir = "table_docs"
+        
+        # 创建保存目录
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        
+        exported_tables = []
+        
+        # 导出每个表的结构
+        for table_name in table_names:
+            try:
+                save_path = os.path.join(save_dir, f"{table_name}.md")
+                table_md(executor, table_name, save_path, self_close=False)
+                exported_tables.append(table_name)
+                print(f"Success export: {table_name}")
+            except Exception as e:
+                print(f"Export failed: {table_name}")
+                continue
+        
+        if self_close:
+            executor.close()
+            
+        print(f"Batch export completed. Total of {len(exported_tables)} tables have been exported to:\n{save_dir}.")
+        return exported_tables
+        
+    except Exception as e:
+        if self_close:
+            executor.close()
+        raise Exception(f"Batch export failed: {str(e)}")

@@ -204,12 +204,25 @@ class SQLExecutor :
 
 
     # 将 table 中的字段和字段类型，导出为md格式文件
-    def export_table_md( self , table_name , save_path , self_close = True ) :
+    def export_table_md( self , table_name , save_path=None , self_close=True ) :
         """
         将 table 中的字段和字段类型，导出为md格式文件
-        :param table_name: 表名
+        :param table_name: 表名或表名列表，支持字符串或列表.[]/()表示导出所有表
+        :param save_path: 保存路径，当导出单个表时为文件路径，导出多个表时为目录路径
         :param self_close: 是否自动关闭连接
-        :return: None
+        :return: 当导出单个表时为None，导出多个表时返回导出的表名列表
         """
-        from .tools.table_export import export_table_md as export_table_md_func
-        export_table_md_func(self, table_name, save_path, self_close)
+        from .tools.table_export import table_md, tables_md
+        
+        # 判断table_name类型
+        if isinstance(table_name, str):
+            # 单个表导出
+            table_md(self, table_name, save_path, self_close)
+            return None
+        elif isinstance(table_name, (list, tuple)):
+            # 批量导出
+            return tables_md(self, table_name, save_path, self_close)
+        else:
+            # 默认按字符串处理
+            table_md(self, str(table_name), save_path, self_close)
+            return None
