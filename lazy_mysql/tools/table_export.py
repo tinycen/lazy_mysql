@@ -67,8 +67,8 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
     if self_close:
         executor.close()
 
-    # 解析结果(取Field,Type,Collation,Comment字段)
-    result = [(row[0], row[1], row[2], row[8]) for row in result]
+    # 解析结果(取Field,Type,Collation,Default,Comment字段)
+    result = [(row[0], row[1], row[2], row[5], row[8]) for row in result]
     
     # 生成Markdown内容
     md_content = f"## {table_name} 表结构\n\n"
@@ -80,14 +80,15 @@ def export_table_md( executor , table_name , save_path = None , self_close = Tru
     
     # 字段信息表
     md_content += "### 字段信息\n\n"
-    md_content += "| 字段名 | 字段类型 | 编码/排序规则 | 字段描述 | 是否主键 |\n"
-    md_content += "| --- | --- | --- | --- | --- |\n"
+    md_content += "| 字段名 | 字段类型 | 编码/排序规则 | 字段描述 | 默认值 | 是否主键 |\n"
+    md_content += "| --- | --- | --- | --- | --- | --- |\n"
     for row in result:
-        field_name, field_type, collation, field_comment = row
+        field_name, field_type, collation, default_value, field_comment = row
         is_primary = "是" if field_name in primary_keys else "-"
         field_comment = field_comment if field_comment else "-"
         collation = collation if collation else "-"
-        md_content += f"| {field_name} | {field_type} | {collation} | {field_comment} | {is_primary} |\n"
+        default_value = str(default_value) if default_value is not None else "-"
+        md_content += f"| {field_name} | {field_type} | {collation} | {field_comment} | {default_value} | {is_primary} |\n"
     
     # 索引信息表
     if indexes:
