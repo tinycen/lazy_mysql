@@ -3,8 +3,8 @@ from .utils.connect import connection
 class SQLExecutor :
     """SQL执行器类，提供统一的数据库操作接口"""
 
-    def __init__( self , sql_config ,database=None,use_dict_cursor=False) :
-        self.mydb , self.mycursor = connection( sql_config,database,use_dict_cursor )
+    def __init__( self , sql_config ,database=None,dict_cursor=False) :
+        self.mydb , self.mycursor = connection( sql_config,database,dict_cursor=dict_cursor )
 
     # 读取sql文件
     def read_sql( self , sql_path ) :

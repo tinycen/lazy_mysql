@@ -3,8 +3,8 @@ import mysql.connector
 from mysql.connector.errors import ConnectionTimeoutError
 
 # 获取数据库连接和游标
-def connection(sql_config, database=None, max_retries=5,
-    retry_delay_base=5,use_dict_cursor=False):
+def connection(sql_config, database=None,dict_cursor=False, max_retries=5,
+    retry_delay_base=5):
     """
     建立数据库连接并返回连接对象和游标对象
 
@@ -51,7 +51,7 @@ def connection(sql_config, database=None, max_retries=5,
                 use_pure=True,
                 allow_local_infile=True  
             )
-            mycursor = mydb.cursor(buffered=True,dictionary=use_dict_cursor)    
+            mycursor = mydb.cursor(buffered=True,dictionary=dict_cursor)    
             # dictionary = True 查询返回字典列表[{'id': 1, 'name': 'a'}, {'id': 2, 'name': 'b'}]  
             # dictionary = False 查询返回元组列表[(1, 'a'), (2, 'b')]  
             
