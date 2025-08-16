@@ -20,19 +20,44 @@ class SQLExecutor :
     # sql 语句执行器
     def execute( self , sql , params = None , commit = False , self_close = False ) :
         """
-        SQL语句执行方法，自动判断是否批量执行
-        :param params: 参数，单个参数为元组，批量参数为元组列表，如 [(value1, value2), (value3, value4)]
+        SQL语句执行方法，支持多种参数格式，自动判断单条/批量执行
+        
+        params 参数格式详解：
+        1. 单个元组：用于【位置参数】（%s占位符）
+           示例：("张三", 25) 对应 SQL: "INSERT INTO users (name, age) VALUES (%s, %s)"
+        
+        2. 单个字典：用于【命名参数】（%(name)s占位符）
+           示例：{"name": "张三", "age": 25} 对应 SQL: "INSERT INTO users (name, age) VALUES (%(name)s, %(age)s)"
+        
+        3. 单个列表：自动转换为元组，示例：["张三", 25] → 转换为("张三", 25)
+        
+        4. 批量执行：用于executemany（仅适用于INSERT/UPDATE/DELETE等DML语句）
+           元组列表：[("张三", 25), ("李四", 30)] 
+           字典列表：[{"name": "张三", "age": 25}, {"name": "李四", "age": 30}]
+
+        :param sql: SQL语句，支持 %s 和 %(name)s 占位符
+        
         """
         try :
             if params :
-                # 判断是否为批量参数（列表且第一个元素是元组）
-                if isinstance(params, list) and len(params) > 0 and isinstance(params[0], (tuple, list)):
-                    self.mycursor.executemany(sql, params)
-                else:
-                    # 如果是列表但不是批量参数，转换为元组
-                    if isinstance(params, list):
-                        params = tuple(params)
+                if isinstance(params, dict) or isinstance(params, tuple):
+                    # 单个字典 或 元组参数
                     self.mycursor.execute(sql, params)
+                elif isinstance(params, list):
+                    if isinstance(params[0], (dict, tuple, list)):
+                        # 简单高效地检测SELECT查询（检查SQL开头）
+                        sql_start = sql.lstrip()[:10].upper()
+                        if sql_start.startswith('SELECT'):
+                            raise ValueError("SELECT查询不支持批量执行（会严重影响性能）！")
+
+                        # 批量参数处理：参数列表的列表/元组/字典
+                        self.mycursor.executemany(sql, params)
+                    else:
+                        # 单个列表参数，转换为元组
+                        params = tuple(params)
+                        self.mycursor.execute(sql, params)
+                else:
+                    raise ValueError(f"Invalid params format: {params}")
             else :
                 self.mycursor.execute(sql)
 
