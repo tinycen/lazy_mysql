@@ -1,4 +1,3 @@
-import pandas as pd
 from .utils.connect import connection
 
 class SQLExecutor :
@@ -6,6 +5,12 @@ class SQLExecutor :
 
     def __init__( self , sql_config ,database=None,use_dict_cursor=False) :
         self.mydb , self.mycursor = connection( sql_config,database,use_dict_cursor )
+
+    # 读取sql文件
+    def read_sql( self , sql_path ) :
+        with open(sql_path, 'r', encoding='utf-8') as f:
+            sql = f.read()
+        return sql.strip()
 
     # 关闭数据库连接
     def close( self ) :
