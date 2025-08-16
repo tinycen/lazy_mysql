@@ -4,8 +4,8 @@ from .utils.connect import connection
 class SQLExecutor :
     """SQL执行器类，提供统一的数据库操作接口"""
 
-    def __init__( self , sql_config ,database=None) :
-        self.mydb , self.mycursor = connection( sql_config,database )
+    def __init__( self , sql_config ,database=None,use_dict_cursor=False) :
+        self.mydb , self.mycursor = connection( sql_config,database,use_dict_cursor )
 
     # 关闭数据库连接
     def close( self ) :
