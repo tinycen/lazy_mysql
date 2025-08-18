@@ -34,7 +34,12 @@ def fetch_format( executor , sql , fetch_mode , output_format = "" , show_count 
         myresult = executor.mycursor.fetchone()  # 接收返回结果行,返回结果为 tuple（元组）,如果没有结果,则仅返回 None
     elif fetch_mode == "one" :
         result = executor.mycursor.fetchone()
-        myresult = result[ 0 ] if result else None
+        if result is None:
+            myresult = None
+        elif isinstance(result,tuple):
+            myresult = result[ 0 ] if result else None
+        else:
+            myresult = result
     else :
         executor.close()
         raise ValueError( f"fetch_mode error :{fetch_mode} , only supported [ all , oneTuple , one ]" )
