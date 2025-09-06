@@ -4,6 +4,9 @@ class SQLExecutor :
     """SQL执行器类，提供统一的数据库操作接口"""
 
     def __init__( self , sql_config ,database=None,dict_cursor=False) :
+        self.sql_config = sql_config
+        self.database = database
+        self.dict_cursor = dict_cursor
         self.mydb , self.mycursor = connection( sql_config,database,dict_cursor=dict_cursor )
 
     # 读取sql文件
@@ -23,7 +26,7 @@ class SQLExecutor :
         self.close()
 
     # sql 语句执行器
-    def execute( self , sql , params = None , commit = False , self_close = False ) :
+    def execute( self , sql , params = None , commit = False , self_close = False , retry_count = 0 ) :
         """
         SQL语句执行方法，支持多种参数格式，自动判断单条/批量执行
         
@@ -41,6 +44,7 @@ class SQLExecutor :
            字典列表：[{"name": "张三", "age": 25}, {"name": "李四", "age": 30}]
 
         :param sql: SQL语句，支持 %s 和 %(name)s 占位符
+        :param retry_count: 内部参数，用于记录重试次数，避免无限循环
         
         """
         try :
@@ -71,11 +75,41 @@ class SQLExecutor :
                 self.mydb.commit()
 
         except Exception as e :
+            error_str = str(e)
+            
+            # 检查是否是连接丢失的错误（OperationalError 2055）
+            if retry_count == 0 and ("Lost connection to MySQL server" in error_str ):
+                try:
+                    print("Lost connection to MySQL server. Attempting to reconnect...")
+                    # 关闭现有连接
+                    try:
+                        self.mydb.close()
+                    except:
+                        pass
+                    
+                    # 重新初始化连接
+                    self.mydb, self.mycursor = connection(self.sql_config, self.database, dict_cursor=self.dict_cursor)
+                    
+                    # 重试执行，标记重试次数避免无限循环
+                    return self.execute(sql, params, commit, self_close, retry_count=1)
+                    
+                except Exception as reconnect_error:
+                    print(f"Reconnection failed: {str(reconnect_error)}")
+                    # 继续执行原始的错误处理流程
+            
             print(f"sql: {sql} \n params:{params}")
             # 如果发生错误，回滚事务
             if commit :
-                self.mydb.rollback()
-            self.mydb.close()
+                try:
+                    self.mydb.rollback()
+                except:
+                    pass  # 连接可能已经断开，忽略回滚错误
+            
+            try:
+                self.mydb.close()
+            except:
+                pass  # 连接可能已经断开，忽略关闭错误
+                
             raise Exception(f"SQL execute failed: {str(e)}")
 
         # 改为仅在提交成功时关闭连接，避免数据未提交就关闭连接
