@@ -167,8 +167,57 @@ class SQLExecutor :
         :param limit: LIMIT子句
         :param join_conditions: JOIN条件，格式为字典，如 {"join_type": "JOIN", "conditions": ["field1", "=", "field2"]}
         :param self_close: 是否自动关闭连接
-        :param fetch_config: 获取配置
-        :return: 查询结果
+        :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为
+            
+            fetch_config是一个字典，包含以下可选配置项：
+            
+            1. fetch_mode (str): 获取模式，控制返回数据的数量
+               - "all" (默认): 获取所有结果
+               - "oneTuple": 获取单条记录（元组格式）
+               - "one": 获取单个值（第一个字段的值）
+               
+            2. output_format (str): 输出格式，仅当fetch_mode="all"时有效
+               - "" (默认): 返回原始元组列表
+               - "list_1": 返回扁平化的列表（提取每行的第一个字段）
+               - "df": 返回pandas DataFrame
+               - "df_dict": 返回字典列表（DataFrame转dict）
+               
+            3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
+               如果为None，系统会根据select_fields自动生成
+               
+            4. show_count (bool): 是否显示查询结果数量，默认为False
+               
+            5. order_by (str): ORDER BY子句，如 "id DESC" 或 "name ASC"
+            
+            6. limit (int): LIMIT子句，限制返回记录数
+            
+            示例：
+                # 获取所有记录并返回DataFrame
+                fetch_config = {
+                    "fetch_mode": "all",
+                    "output_format": "df",
+                    "data_label": ["id", "name", "email"],
+                    "show_count": True
+                }
+                
+                # 获取单条记录
+                fetch_config = {
+                    "fetch_mode": "oneTuple"
+                }
+                
+                # 获取单个值
+                fetch_config = {
+                    "fetch_mode": "one"
+                }
+                
+                # 获取所有记录并返回字典列表
+                fetch_config = {
+                    "fetch_mode": "all",
+                    "output_format": "df_dict",
+                    "order_by": "created_at DESC",
+                    "limit": 100
+                }
+        :return: 查询结果，格式根据fetch_config配置而定
         """
         from .utils.select import select as select_func
         return select_func(self, table_names, select_fields, where_conditions, order_by, limit, join_conditions, self_close, fetch_config)
@@ -178,6 +227,50 @@ class SQLExecutor :
         join_conditions=None,fetch_config = None,format_func=None , self_close = True ) :
         """
         通用的产品数据获取与格式化方法
+        
+        :param table_names: 表名，可以是字符串或列表
+        :param select_fields: 要查询的字段列表
+        :param where_conditions: WHERE条件，格式为字典
+        :param join_conditions: JOIN条件，格式为字典
+        :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为
+            
+            fetch_config是一个字典，包含以下可选配置项：
+            
+            1. fetch_mode (str): 获取模式，控制返回数据的数量
+               - "all" (默认): 获取所有结果
+               - "oneTuple": 获取单条记录（元组格式）
+               - "one": 获取单个值（第一个字段的值）
+               
+            2. output_format (str): 输出格式，仅当fetch_mode="all"时有效
+               - "df_dict" (默认): 返回字典列表
+               - "df": 返回pandas DataFrame
+               - "list_1": 返回扁平化的列表
+               - "": 返回原始元组列表
+               
+            3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
+               如果为None，系统会根据select_fields自动生成
+               
+            4. show_count (bool): 是否显示查询结果数量，默认为False
+               
+            5. order_by (str): ORDER BY子句，如 "id DESC" 或 "name ASC"
+            
+            6. limit (int): LIMIT子句，限制返回记录数
+            
+            示例：
+                # 获取所有记录并返回字典列表（默认）
+                fetch_config = {
+                    "output_format": "df_dict",
+                    "order_by": "created_at DESC",
+                    "limit": 100
+                }
+                
+                # 获取单条记录
+                fetch_config = {
+                    "fetch_mode": "oneTuple"
+                }
+        :param format_func: 自定义格式化函数，用于对结果进行额外处理
+        :param self_close: 是否自动关闭连接
+        :return: 包含success、result、message的字典
         """
         
         if fetch_config is None :
@@ -217,9 +310,45 @@ class SQLExecutor :
         执行自定义SQL查询
         :param sql: SQL语句
         :param params: 参数
-        :param fetch_config: 获取配置
+        :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为
+            
+            fetch_config是一个字典，包含以下可选配置项：
+            
+            1. fetch_mode (str): 获取模式，控制返回数据的数量
+               - "all" (默认): 获取所有结果
+               - "oneTuple": 获取单条记录（元组格式）
+               - "one": 获取单个值（第一个字段的值）
+               
+            2. output_format (str): 输出格式，仅当fetch_mode="all"时有效
+               - "df_dict" (默认): 返回字典列表
+               - "df": 返回pandas DataFrame
+               - "list_1": 返回扁平化的列表
+               - "" (默认): 返回原始元组列表
+               
+            3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
+               
+            4. show_count (bool): 是否显示查询结果数量，默认为False
+            
+            示例：
+                # 获取所有记录并返回DataFrame
+                fetch_config = {
+                    "fetch_mode": "all",
+                    "output_format": "df",
+                    "data_label": ["id", "name", "email"],
+                    "show_count": True
+                }
+                
+                # 获取单条记录
+                fetch_config = {
+                    "fetch_mode": "oneTuple"
+                }
+                
+                # 执行聚合查询获取单个值
+                fetch_config = {
+                    "fetch_mode": "one"
+                }
         :param self_close: 是否自动关闭连接
-        :return: 查询结果
+        :return: 查询结果，格式根据fetch_config配置而定
         """
         if fetch_config is None:
             fetch_config = {}
