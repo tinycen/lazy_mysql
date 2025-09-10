@@ -9,7 +9,7 @@ except FileNotFoundError:
 
 setup(
     name='lazy_mysql',
-    version='0.2.6.3',
+    version='0.2.7',
     packages=find_packages(),
     install_requires=[
         'mysql-connector-python>=9.4.0',
