@@ -9,7 +9,7 @@ except FileNotFoundError:
 
 setup(
     name='lazy_mysql',
-    version='0.2.7',
+    version='0.2.8',
     packages=find_packages(),
     install_requires=[
         'mysql-connector-python>=9.4.0',
@@ -17,7 +17,7 @@ setup(
     ],
     author='tinycen',
     author_email='sky_ruocen@qq.com',
-    description='A lazy MySQL client for Python.',
+    description='A lazy MySQL client for Python that simplifies database operations with intuitive methods for CRUD operations, automatic connection management, and result formatting. Features include easy-to-use SELECT, INSERT, UPDATE, DELETE operations with pandas DataFrame support, where clause builders, and table export capabilities.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/tinycen/lazy_mysql',
