@@ -20,6 +20,10 @@ class SQLExecutor :
         self.mycursor.close()
         self.mydb.close()
 
+    # 提交数据库
+    def commit( self ) :
+        self.mydb.commit()
+
     # 提交并关闭数据库连接
     def commit_close( self ) :
         self.mydb.commit()
