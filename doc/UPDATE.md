@@ -38,6 +38,31 @@ update(
 # 使用SQL表达式（需手动处理参数）
 {'balance': ('balance + %s', 100), 'updated_at': ('NOW()',)}
 ```
+> ⚠️ **重要注意事项**
+> 
+> **列表类型参数处理**：当`update_fields`中的值为Python列表时，需要手动转换为字符串格式，因为MySQL的`%s`占位符不支持直接传入列表。
+> 
+> **正确的处理方式**：
+> ```python
+> import json
+> 
+> update_fields = {
+>     "natural": "[]",
+>     "selections": json.dumps(selections),  # 转换为JSON字符串
+>     "fills": json.dumps(fills),           # 转换为JSON字符串
+>     "doc": doc
+> }
+> ```
+> 
+> **错误的处理方式**：
+> ```python
+> # 直接传入列表
+> update_fields = {
+>     "selections": selections,  # ❌ 错误：列表不能直接作为参数
+>     "fills": fills              # ❌ 错误：列表不能直接作为参数
+> }
+> ```
+
 
 #### where_conditions 条件格式
 支持两种条件定义方式：
