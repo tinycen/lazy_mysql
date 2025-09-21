@@ -1,3 +1,4 @@
+import json
 from ..executor import SQLExecutor
 from ..tools.where_clause import build_where_clause
 
@@ -13,14 +14,20 @@ def update(executor: SQLExecutor, table_name, update_fields, where_conditions, c
     :param self_close: 是否自动关闭连接
     :return: None
     """
+    # 处理update_fields中的dict和list类型，自动执行json.dumps
+    processed_fields = update_fields.copy()
+    for field, value in processed_fields.items():
+        if isinstance(value, (dict, list)):
+            processed_fields[field] = json.dumps(value)
+
     # 构造SET子句
-    set_clause = ', '.join([f"{field} = %s" for field in update_fields.keys()])
+    set_clause = ', '.join([f"{field} = %s" for field in processed_fields.keys()])
 
     # 构造WHERE子句
     where_clause, where_params = build_where_clause(where_conditions)
 
-    # 合并参数：update_fields的值 + where_conditions的值
-    params = list(update_fields.values())
+    # 合并参数：processed_fields的值 + where_conditions的值
+    params = list(processed_fields.values())
     if where_params:
         params.extend(where_params)
 

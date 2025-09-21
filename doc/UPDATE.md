@@ -38,34 +38,33 @@ update(
 # 使用SQL表达式（需手动处理参数）
 {'balance': ('balance + %s', 100), 'updated_at': ('NOW()',)}
 ```
-> ⚠️ **重要注意事项**
+> ✅ **自动JSON序列化**
 > 
-> **列表类型参数处理**：当`update_fields`中的值为Python列表时，需要手动转换为字符串格式，因为MySQL的`%s`占位符不支持直接传入列表。
+> **列表和字典类型自动处理**：当`update_fields`中的值为Python列表或字典时，系统会自动将其转换为JSON字符串，无需手动处理。
 > 
-> **正确的处理方式**：
+> **自动转换示例**：
 > ```python
-> import json
-> 
+> # 系统会自动处理，无需手动转换
 > update_fields = {
->     "natural": "[]",
->     "selections": json.dumps(selections),  # 转换为JSON字符串
->     "fills": json.dumps(fills),           # 转换为JSON字符串
->     "doc": doc
+>     "config": {"key": "value", "enabled": True},  # dict类型 → 自动JSON序列化
+>     "tags": ["python", "mysql", "lazy"],           # list类型 → 自动JSON序列化
+>     "name": "张三"                                   # 普通字符串 → 保持原样
 > }
 > ```
 > 
-> **错误的处理方式**：
-> ```python
-> # 直接传入列表
-> update_fields = {
->     "selections": selections,  # ❌ 错误：列表不能直接作为参数
->     "fills": fills              # ❌ 错误：列表不能直接作为参数
-> }
+> **生成的SQL**：
+> ```sql
+> UPDATE table_name SET config = %s, tags = %s, name = %s WHERE ...;
+> -- 参数：['{"key": "value", "enabled": true}', '["python", "mysql", "lazy"]', '张三']
 > ```
+> 
+> **兼容性说明**：
+> - 支持MySQL 8.0+的JSON数据类型字段
+> - 也支持TEXT/VARCHAR字段存储JSON字符串
+> - 自动处理确保数据格式正确，避免SQL注入风险
 
 
 #### where_conditions 条件格式
-支持两种条件定义方式：
 
 **方式1：等值条件（推荐）**
 ```python
