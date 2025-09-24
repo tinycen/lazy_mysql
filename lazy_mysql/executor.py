@@ -162,6 +162,26 @@ class SQLExecutor :
         return insert_func(self, table_name, insert_fields, skip_duplicate, commit, self_close)
 
 
+    # 插入或更新数据
+    def upsert( self , table_name , insert_fields , update_fields = None, commit = False , self_close = False ) :
+        """
+        智能 INSERT ... ON DUPLICATE KEY UPDATE 执行器
+        存在就更新，不存在就插入
+        单条：dict -> 直接 upsert
+        多条：list[dict] -> 批量 executemany upsert
+
+        :param table_name: 表名
+        :param insert_fields: 字段和值，格式为字典或字典列表，如 {'field1': 'value1', 'field2': 'value2'} 或 [{'field1': 'value1'}, {'field1': 'value2'}]
+        :param update_fields: 指定冲突时更新的字段，None 表示更新所有字段
+        示例：{'age'} 表示只更新 age 字段，其他字段保持不变
+        :param commit: 是否自动提交
+        :param self_close: 是否自动关闭连接
+        :return: 插入或更新成功的记录数（int）
+        """
+        from .utils.insert import upsert as upsert_func
+        return upsert_func(self, table_name, insert_fields, update_fields, commit, self_close)
+
+
     # 更新数据
     def update( self , table_name , update_fields , where_conditions , commit = False , self_close = False ) :
         """
