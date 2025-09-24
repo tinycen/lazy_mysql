@@ -1,5 +1,7 @@
 # UPDATE 操作完整指南
 
+> **前提条件**：使用前请先阅读 [CONNECTION.md](CONNECTION.md) 完成数据库连接初始化。
+
 `lazy_mysql` 的 UPDATE 操作采用简洁而强大的设计，让您能够安全高效地更新数据库记录。通过动态SQL构建和参数化查询，既保证了代码的可读性，又防止了SQL注入攻击。
 
 ## 函数签名与参数说明
@@ -107,7 +109,7 @@ update(
 ```python
 from lazy_mysql.executor import SQLExecutor
 
-# 初始化连接
+# 初始化连接（详见 CONNECTION.md）
 config = {
     'host': 'localhost',
     'user': 'your_username',

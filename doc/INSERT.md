@@ -1,5 +1,7 @@
 # INSERT 操作完整指南
 
+> **前提条件**：使用前请先阅读 [CONNECTION.md](CONNECTION.md) 完成数据库连接初始化。
+
 `lazy_mysql` 的 INSERT 操作采用智能多策略系统，根据数据量自动选择最优插入策略：
 
 | 数据规模 | 自动选择策略 | 批次大小 | 性能特征 |
@@ -56,15 +58,13 @@ insert(
 ```python
 from lazy_mysql import SQLExecutor, MySQLConfig
  
-# 配置数据库连接
+# 配置数据库连接（详见 CONNECTION.md）
 config = MySQLConfig(
     host='localhost',
     user='your_username',
     passwd='your_password',
     default_database='your_database'
 )
- 
-# 创建执行器实例
 executor = SQLExecutor(config)
 ```
 

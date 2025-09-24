@@ -1,5 +1,7 @@
 # SELECT 操作完整指南
 
+> **前提条件**：使用前请先阅读 [CONNECTION.md](CONNECTION.md) 完成数据库连接初始化。
+
 `lazy_mysql` 的 SELECT 操作采用模块化设计，由以下核心组件协同工作：
 
 - **SQLExecutor**: 主接口类，提供统一的查询入口
@@ -106,15 +108,8 @@ fetch_config = {
 
 ```python
 from lazy_mysql.executor import SQLExecutor
-from lazy_mysql.sql_config import MySQLConfig
 
-# 初始化连接
-config = MySQLConfig(
-    host='localhost',
-    user='your_username',
-    passwd='your_password',
-    default_database='your_database'
-)
+# 初始化连接（详见 CONNECTION.md）
 executor = SQLExecutor(config)
 
 # 查询所有用户的基础信息

@@ -1,5 +1,7 @@
 # DELETE 操作完整指南
 
+> **前提条件**：使用前请先阅读 [CONNECTION.md](CONNECTION.md) 完成数据库连接初始化。
+
 `lazy_mysql` 的 DELETE 操作采用安全优先设计，通过强制 WHERE 条件验证和灵活的参数系统，有效防止意外数据丢失。与原始 SQL 不同（可能会因遗漏 WHERE 子句而删除所有记录），该库要求明确指定删除条件，确保只删除目标数据。
 
 
@@ -167,17 +169,9 @@ def debug_delete(executor, table, conditions):
 
 ```python
 from lazy_mysql.executor import SQLExecutor
-from lazy_mysql.sql_config import MySQLConfig
 import datetime
 
-# 初始化连接
-config = MySQLConfig(
-    host='localhost',
-    user='your_username',
-    passwd='your_password',
-    default_database='your_database'
-)
-
+# 初始化连接（详见 CONNECTION.md）
 executor = SQLExecutor(config)
 
 try:
