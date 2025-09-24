@@ -1,9 +1,8 @@
 import os
 import csv
 import tempfile
-from ..executor import SQLExecutor
 
-def insert(executor: SQLExecutor, table_name, insert_fields, skip_duplicate=False, commit=False, self_close=False, temp_dir=None):
+def insert(executor, table_name, insert_fields, skip_duplicate=False, commit=False, self_close=False, temp_dir=None):
     """
     智能SQL插入执行器方法，根据数据量自动选择最优插入策略
     
@@ -67,7 +66,7 @@ def insert(executor: SQLExecutor, table_name, insert_fields, skip_duplicate=Fals
         raise ValueError("insert_fields must be a dict or a list of dicts")
 
 
-def upsert(executor: SQLExecutor, table_name, insert_fields, update_fields=None, commit=False, self_close=False):
+def upsert(executor, table_name, insert_fields, update_fields=None, commit=False, self_close=False):
     """
     智能 INSERT ... ON DUPLICATE KEY UPDATE 执行器
     存在就更新，不存在就插入
@@ -132,7 +131,7 @@ def _upsert_batch(executor, table_name, data_list, update_fields, commit, self_c
     return len(data_list)
 
 
-def _bulk_insert_load_data(executor: SQLExecutor, table_name, insert_fields, skip_duplicate=False, 
+def _bulk_insert_load_data(executor, table_name, insert_fields, skip_duplicate=False, 
                           commit=True, batch_size=50000, temp_dir=None, self_close=False):
     """
     使用LOAD DATA INFILE进行超高速批量插入，专为百万级数据量优化
@@ -218,7 +217,7 @@ def _bulk_insert_load_data(executor: SQLExecutor, table_name, insert_fields, ski
     return inserted_count
 
 
-def _executemany_optimized(executor: SQLExecutor, table_name, insert_fields, skip_duplicate=False, 
+def _executemany_optimized(executor, table_name, insert_fields, skip_duplicate=False, 
                           commit=True, batch_size=10000, self_close=False):
     """
     优化的分批executemany插入，适合1-50万数据量

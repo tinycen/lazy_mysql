@@ -1,7 +1,6 @@
-from ..executor import SQLExecutor
 from ..tools.where_clause import build_where_clause
 
-def delete(executor: SQLExecutor, table_name, where_conditions, commit=False, self_close=False):
+def delete(executor, table_name, where_conditions, commit=False, self_close=False):
     """
     通用的SQL删除执行器方法，支持动态构造WHERE子句
 

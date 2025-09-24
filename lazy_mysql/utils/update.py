@@ -1,8 +1,7 @@
 import json
-from ..executor import SQLExecutor
 from ..tools.where_clause import build_where_clause
 
-def update(executor: SQLExecutor, table_name, update_fields, where_conditions, commit=False, self_close=False):
+def update(executor, table_name, update_fields, where_conditions, commit=False, self_close=False):
     """
     通用的SQL更新执行器方法，支持动态构造WHERE子句
 

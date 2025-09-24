@@ -1,7 +1,6 @@
-from ..executor import SQLExecutor
 from ..tools.where_clause import build_where_clause
 
-def select(executor: SQLExecutor, table_names, select_fields, where_conditions, order_by=None, limit=None,
+def select(executor, table_names, select_fields, where_conditions, order_by=None, limit=None,
            join_conditions=None, self_close=False, fetch_config=None):
     """
     通用的SQL查询执行器方法，支持JOIN操作
