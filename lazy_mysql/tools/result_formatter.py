@@ -22,10 +22,15 @@ def fetch_format( executor , sql , fetch_mode , output_format = "" , show_count 
         - fetch_mode="oneTuple": 返回单个元组，如 (1, '张三', 'zhang@example.com')
         - fetch_mode="one": 返回单个值，如 1 或 '张三'
     """
-    executor.execute( sql , params , self_close = False )
 
     if data_label is None :
         data_label = [ ]
+
+    # 验证：当输出格式为df时，data_label不能为空
+    if output_format in ["df", "df_dict"] and not data_label:
+        raise ValueError("当 output_format 为 'df' 或 'df_dict' 时，data_label 参数不能为空!")
+
+    executor.execute( sql , params , self_close = False )
 
     if fetch_mode == "all" :
         myresult = executor.mycursor.fetchall()  # 接收全部的返回结果行,返回结果为 [tuple（元组）]
