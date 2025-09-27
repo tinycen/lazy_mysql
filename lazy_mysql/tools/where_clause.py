@@ -25,8 +25,8 @@ def build_where_clause( where_conditions ) :
         
         >>> conditions = {'status': ('IN', [1, 2, 3]), 'create_time': ('>=', '2023-01-01')}
         >>> clause, params = build_where_clause(conditions)
-        >>> print(clause)  # 输出: status IN %s AND create_time >= %s
-        >>> print(params)  # 输出: [[1, 2, 3], '2023-01-01']
+        >>> print(clause)  # 输出: status IN (%s, %s, %s) AND create_time >= %s
+        >>> print(params)  # 输出: [1, 2, 3, '2023-01-01']
     """
     if not where_conditions :
         return None , None
@@ -38,8 +38,17 @@ def build_where_clause( where_conditions ) :
         if isinstance(value, tuple) and len(value) == 2 :
             # 元组解包
             operator, val = value       # 例如当 value = ('>', 100) 时， operator 会得到'>'， val 会得到100
-            clauses.append(f"{field} {operator} %s")
-            params.append(val)
+            
+            # 处理IN和NOT IN运算符的特殊情况
+            if operator.upper() in ('IN', 'NOT IN') and isinstance(val, (list, tuple)):
+                # 为列表中的每个元素创建一个%s占位符
+                placeholders = ', '.join(['%s'] * len(val))
+                clauses.append(f"{field} {operator.upper()} ({placeholders})")
+                # 将列表中的每个元素添加到参数列表中
+                params.extend(val)
+            else:
+                clauses.append(f"{field} {operator} %s")
+                params.append(val)
         else :
             clauses.append(f"{field} = %s")
             params.append(value)
