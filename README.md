@@ -157,7 +157,6 @@ executor.close()
 
 项目已发布到PyPI，可通过以下链接访问：
 - **PyPI主页**: https://pypi.org/project/lazy-mysql/
-- **项目文档**: https://github.com/your-username/lazy_mysql
 
 ## 📄 开源协议
 
