@@ -1,5 +1,5 @@
 import json
-from ..tools.where_clause import build_where_clause
+from ...tools.where_clause import build_where_clause
 
 def update(executor, table_name, update_fields, where_conditions, commit=False, self_close=False):
     """

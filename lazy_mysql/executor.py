@@ -197,6 +197,43 @@ class SQLExecutor :
         from .utils.update import update as update_func
         update_func(self, table_name, update_fields, where_conditions, commit, self_close)
 
+    # 批量更新数据
+    def batch_update( self , table_name , update_list , commit = False , self_close = False ) :
+        """
+        智能批量更新方法，自动判断WHERE条件复杂度并选择最优SQL生成策略
+        
+        策略选择逻辑：
+        1. 如果所有记录的WHERE条件都是单一字段 → 使用简化的 CASE key_field WHEN 语法（性能最优）
+        2. 如果WHERE条件包含多字段或复杂条件 → 使用通用的 CASE WHEN ... THEN 语法
+
+        :param table_name: 表名
+        :param update_list: 更新数据列表，每个元素包含 update_fields 和 where_conditions
+            格式示例: [
+                {'update_fields': {'name': '张三', 'age': 25}, 'where_conditions': {'id': 1}},
+                {'update_fields': {'name': '李四', 'age': 30}, 'where_conditions': {'id': 2}}
+            ]
+        :param commit: 是否自动提交
+        :param self_close: 是否自动关闭连接
+        :return: None
+        
+        :example:
+            # 单一主键条件（自动使用简化语法）
+            >>> update_list = [
+            ...     {'update_fields': {'name': '张三', 'age': 25}, 'where_conditions': {'id': 1}},
+            ...     {'update_fields': {'name': '李四', 'age': 30}, 'where_conditions': {'id': 2}}
+            ... ]
+            >>> executor.batch_update('users', update_list, commit=True)
+            
+            # 复杂条件（自动使用通用语法）
+            >>> update_list = [
+            ...     {'update_fields': {'status': 'active'}, 'where_conditions': {'id': 1, 'type': 'user'}},
+            ...     {'update_fields': {'status': 'inactive'}, 'where_conditions': {'id': ('>', 100)}}
+            ... ]
+            >>> executor.batch_update('users', update_list, commit=True)
+        """
+        from .utils.update import batch_update as batch_update_func
+        batch_update_func(self, table_name, update_list, commit, self_close)
+
     # 删除数据
     def delete( self , table_name , where_conditions , commit = False , self_close = False ) :
         """

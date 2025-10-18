@@ -276,3 +276,96 @@ def debug_update(table, fields, conditions):
     # 执行更新
     return executor.update(table, fields, conditions, commit=True)
 ```
+
+## 批量更新操作 (batch_update)
+
+`batch_update` 是 `lazy_mysql` 提供的高性能批量更新方法，能够智能判断 WHERE 条件复杂度并选择最优的 SQL 生成策略。
+
+### 函数签名
+
+```python
+batch_update(
+    table_name: str,
+    update_list: list,
+    commit: bool = False,
+    self_close: bool = False
+)
+```
+
+### 参数说明
+
+| 参数名 | 类型 | 必填 | 默认值 | 说明 |
+|--------|------|------|--------|------|
+| `table_name` | str | 是 | - | 要更新的表名 |
+| `update_list` | list | 是 | - | 更新数据列表，每个元素包含 `update_fields` 和 `where_conditions` |
+| `commit` | bool | 否 | `False` | 是否自动提交事务 |
+| `self_close` | bool | 否 | `False` | 操作完成后是否自动关闭数据库连接 |
+
+### 智能策略选择
+
+系统会自动分析更新条件，选择最优的执行策略：
+
+1. **简化模式**（单一主键条件）：使用 `CASE key_field WHEN` 语法，性能最优
+2. **复杂模式**（多字段或复杂条件）：使用 `CASE WHEN ... THEN` 语法，功能强大
+
+### 使用示例
+
+#### 示例1：单一主键条件（简化模式）
+
+```python
+update_list = [
+    {'update_fields': {'name': '张三', 'age': 25}, 'where_conditions': {'id': 1}},
+    {'update_fields': {'name': '李四', 'age': 30}, 'where_conditions': {'id': 2}}
+]
+
+executor.batch_update('users', update_list, commit=True)
+```
+
+生成的SQL：
+```sql
+UPDATE users SET 
+    name = CASE id WHEN %s THEN %s WHEN %s THEN %s END,
+    age = CASE id WHEN %s THEN %s WHEN %s THEN %s END
+WHERE id IN (%s, %s);
+```
+
+参数：`(1, '张三', 2, '李四', 1, 25, 2, 30, 1, 2)`
+
+#### 示例2：复杂条件（复杂模式）
+
+```python
+update_list = [
+    {'update_fields': {'status': 'active'}, 'where_conditions': {'id': 1, 'type': 'user'}},
+    {'update_fields': {'status': 'inactive'}, 'where_conditions': {'id': 2}}
+]
+
+executor.batch_update('users', update_list, commit=True)
+```
+
+生成的SQL：
+```sql
+UPDATE users SET 
+    status = CASE 
+        WHEN id = %s AND type = %s THEN %s 
+        WHEN id = %s THEN %s 
+        ELSE status END
+WHERE (id = %s AND type = %s) OR (id = %s);
+```
+
+参数：`('active', 1, 'user', 'inactive', 2, 1, 'user', 2)`
+
+### 性能优势
+
+相比逐条执行 `UPDATE`，`batch_update` 具有以下优势：
+
+- **减少网络往返**：单次执行多条更新
+- **优化SQL生成**：根据条件复杂度智能选择最优语法
+- **事务安全**：支持批量提交，保证数据一致性
+- **参数化查询**：防止SQL注入，提高安全性
+
+### 注意事项
+
+1. **WHERE条件不能为空**：每个更新项都必须有明确的WHERE条件
+2. **字段一致性**：所有 `update_fields` 中的字段会被统一处理
+3. **数据类型**：列表和字典类型会自动转换为JSON字符串
+4. **性能考虑**：适合中等批量更新（100-10000条记录）
