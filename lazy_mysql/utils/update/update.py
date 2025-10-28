@@ -17,7 +17,9 @@ def update(executor, table_name, update_fields, where_conditions, commit=False, 
     processed_fields = update_fields.copy()
     for field, value in processed_fields.items():
         if isinstance(value, (dict, list)):
-            processed_fields[field] = json.dumps(value)
+            # sort_keys=False：确保不按照 key 的首字母排序。保持原有key的顺序。
+            # ensure_ascii=False：确保非 ASCII 字符（如中文、法文等）正确显示，不会被转义
+            processed_fields[field] = json.dumps(value, sort_keys=False, ensure_ascii=False)
 
     # 构造SET子句
     set_clause = ', '.join([f"{field} = %s" for field in processed_fields.keys()])
