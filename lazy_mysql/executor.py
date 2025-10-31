@@ -1,5 +1,13 @@
 from .utils.connect import connection
 
+# 定义需要重试的错误信息常量
+RETRYABLE_ERRORS = [
+    "Lost connection to MySQL server",
+    "The Read Operation timed out",
+    "TimeoutError",
+    "connection timeout"
+]
+
 class SQLExecutor :
     """SQL执行器类，提供统一的数据库操作接口"""
 
@@ -80,11 +88,12 @@ class SQLExecutor :
 
         except Exception as e :
             error_str = str(e)
+            error_str_lower = error_str.lower()
             
-            # 检查是否是连接丢失的错误（OperationalError 2055）
-            if retry_count == 0 and ("Lost connection to MySQL server" in error_str ):
+            # 检查是否是可重试的错误（连接丢失或超时错误）
+            if retry_count == 0 and any(error.lower() in error_str_lower for error in RETRYABLE_ERRORS):
                 try:
-                    print("Lost connection to MySQL server. Attempting to reconnect...")
+                    print("Connection lost or timeout. Attempting to reconnect...")
                     # 关闭现有连接
                     try:
                         self.mydb.close()
