@@ -136,13 +136,19 @@ class SQLExecutor :
         """
         定义解析结果程序(格式化返回结果)
         :param sql: SQL语句
-        :param fetch_mode: 获取模式
-        :param output_format: 输出格式
+        :param fetch_mode: 获取模式,可选值: all、oneTuple、one
+        :param output_format: 输出格式 ,默认 "" , 可选值: list_1、df、df_dict , 仅在 fetch_mode 为 all 时有效
         :param show_count: 是否显示结果数量
-        :param data_label: 数据标签
+        :param data_label: 数据标签，用于DataFrame的列名或字典的键名
         :param params: 参数
         :param self_close: 是否自动关闭连接
-        :return: 查询结果
+        :return: 查询结果，格式根据参数配置而定
+            - fetch_mode="all" + output_format="": 返回元组列表，如 [(1, '张三', 'zhang@example.com'), (2, '李四', 'li@example.com')]
+            - fetch_mode="all" + output_format="list_1": 返回扁平化列表，如 [1, 2, 3]（提取每行第一个字段）
+            - fetch_mode="all" + output_format="df": 返回pandas DataFrame
+            - fetch_mode="all" + output_format="df_dict": 返回字典列表，如 [{'id': 1, 'name': '张三'}, {'id': 2, 'name': '李四'}]
+            - fetch_mode="oneTuple": 返回单个元组，如 (1, '张三', 'zhang@example.com')
+            - fetch_mode="one": 返回单个值，如 1 或 '张三'
         """
         from .tools.result_formatter import fetch_format as fetch_format_func
         return fetch_format_func(self, sql, fetch_mode, output_format, show_count, data_label, params, self_close)
