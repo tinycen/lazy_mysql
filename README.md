@@ -163,6 +163,3 @@ executor.close()
 ## 📄 开源协议
 
 本项目采用MIT开源协议 - 详见 [LICENSE](LICENSE) 文件
-
-## 📄 License
-This project is licensed under the MIT License.
