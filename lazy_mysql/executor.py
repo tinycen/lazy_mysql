@@ -28,6 +28,58 @@ class SQLExecutor :
         self.mycursor.close()
         self.mydb.close()
 
+    def _handle_connection_error(self, error, operation_name, retry_count=0, sql=None, params=None, needs_rollback=False):
+        """
+        统一的连接错误处理逻辑
+        
+        :param error: 异常对象
+        :param operation_name: 操作名称（用于日志）
+        :param retry_count: 重试次数
+        :param sql: SQL语句（可选，用于日志）
+        :param params: 参数（可选，用于日志）
+        :param needs_rollback: 是否需要回滚事务
+        :return: 如果重试成功返回True，否则抛出异常
+        """
+        error_str = str(error)
+        error_str_lower = error_str.lower()
+        
+        # 检查是否是可重试的错误（连接丢失或超时错误）
+        if retry_count == 0 and any(error.lower() in error_str_lower for error in RETRYABLE_ERRORS):
+            try:
+                print(f"Connection lost or timeout during {operation_name}. Attempting to reconnect...")
+                # 关闭现有连接
+                try:
+                    self.mydb.close()
+                except:
+                    pass
+                
+                # 重新初始化连接
+                self.mydb, self.mycursor = connection(self.sql_config, self.database, dict_cursor=self.dict_cursor)
+                
+                return True  # 重试成功
+                
+            except Exception as reconnect_error:
+                print(f"Reconnection failed during {operation_name}: {str(reconnect_error)}")
+                # 继续执行原始的错误处理流程
+        
+        if sql:
+            print(f"sql: {sql} \n params:{params}")
+        print(f"{operation_name} failed: {error_str}")
+        
+        # 如果发生错误，回滚事务
+        if needs_rollback:
+            try:
+                self.mydb.rollback()
+            except:
+                pass  # 连接可能已经断开，忽略回滚错误
+        
+        try:
+            self.mydb.close()
+        except:
+            pass  # 连接可能已经断开，忽略关闭错误
+            
+        raise Exception(f"SQL {operation_name} failed: {str(error)}")
+
     # 提交数据库
     def commit( self , retry_count = 0 ) :
         """
@@ -37,42 +89,8 @@ class SQLExecutor :
         try :
             self.mydb.commit()
         except Exception as e :
-            error_str = str(e)
-            error_str_lower = error_str.lower()
-            
-            # 检查是否是可重试的错误（连接丢失或超时错误）
-            if retry_count == 0 and any(error.lower() in error_str_lower for error in RETRYABLE_ERRORS):
-                try:
-                    print("Connection lost or timeout during commit. Attempting to reconnect...")
-                    # 关闭现有连接
-                    try:
-                        self.mydb.close()
-                    except:
-                        pass
-                    
-                    # 重新初始化连接
-                    self.mydb, self.mycursor = connection(self.sql_config, self.database, dict_cursor=self.dict_cursor)
-                    
-                    # 重试提交，标记重试次数避免无限循环
-                    return self.commit(retry_count=1)
-                    
-                except Exception as reconnect_error:
-                    print(f"Reconnection failed during commit: {str(reconnect_error)}")
-                    # 继续执行原始的错误处理流程
-            
-            print(f"Commit failed: {error_str}")
-            # 如果发生错误，回滚事务
-            try:
-                self.mydb.rollback()
-            except:
-                pass  # 连接可能已经断开，忽略回滚错误
-            
-            try:
-                self.mydb.close()
-            except:
-                pass  # 连接可能已经断开，忽略关闭错误
-                
-            raise Exception(f"SQL commit failed: {str(e)}")
+            if self._handle_connection_error(e, "commit", retry_count, needs_rollback=True):
+                return self.commit(retry_count=1)
 
     # 提交并关闭数据库连接
     def commit_close( self ) :
@@ -129,43 +147,8 @@ class SQLExecutor :
                 self.mydb.commit()
 
         except Exception as e :
-            error_str = str(e)
-            error_str_lower = error_str.lower()
-            
-            # 检查是否是可重试的错误（连接丢失或超时错误）
-            if retry_count == 0 and any(error.lower() in error_str_lower for error in RETRYABLE_ERRORS):
-                try:
-                    print("Connection lost or timeout. Attempting to reconnect...")
-                    # 关闭现有连接
-                    try:
-                        self.mydb.close()
-                    except:
-                        pass
-                    
-                    # 重新初始化连接
-                    self.mydb, self.mycursor = connection(self.sql_config, self.database, dict_cursor=self.dict_cursor)
-                    
-                    # 重试执行，标记重试次数避免无限循环
-                    return self.execute(sql, params, commit, self_close, retry_count=1)
-                    
-                except Exception as reconnect_error:
-                    print(f"Reconnection failed: {str(reconnect_error)}")
-                    # 继续执行原始的错误处理流程
-            
-            print(f"sql: {sql} \n params:{params}")
-            # 如果发生错误，回滚事务
-            if commit :
-                try:
-                    self.mydb.rollback()
-                except:
-                    pass  # 连接可能已经断开，忽略回滚错误
-            
-            try:
-                self.mydb.close()
-            except:
-                pass  # 连接可能已经断开，忽略关闭错误
-                
-            raise Exception(f"SQL execute failed: {str(e)}")
+            if self._handle_connection_error(e, "execute", retry_count, sql=sql, params=params, needs_rollback=commit):
+                return self.execute(sql, params, commit, self_close, retry_count=1)
 
         # 关闭连接
         if self_close:
