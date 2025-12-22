@@ -29,12 +29,54 @@ class SQLExecutor :
         self.mydb.close()
 
     # 提交数据库
-    def commit( self ) :
-        self.mydb.commit()
+    def commit( self , retry_count = 0 ) :
+        """
+        提交数据库事务，支持自动重连和回滚
+        :param retry_count: 内部参数，用于记录重试次数，避免无限循环
+        """
+        try :
+            self.mydb.commit()
+        except Exception as e :
+            error_str = str(e)
+            error_str_lower = error_str.lower()
+            
+            # 检查是否是可重试的错误（连接丢失或超时错误）
+            if retry_count == 0 and any(error.lower() in error_str_lower for error in RETRYABLE_ERRORS):
+                try:
+                    print("Connection lost or timeout during commit. Attempting to reconnect...")
+                    # 关闭现有连接
+                    try:
+                        self.mydb.close()
+                    except:
+                        pass
+                    
+                    # 重新初始化连接
+                    self.mydb, self.mycursor = connection(self.sql_config, self.database, dict_cursor=self.dict_cursor)
+                    
+                    # 重试提交，标记重试次数避免无限循环
+                    return self.commit(retry_count=1)
+                    
+                except Exception as reconnect_error:
+                    print(f"Reconnection failed during commit: {str(reconnect_error)}")
+                    # 继续执行原始的错误处理流程
+            
+            print(f"Commit failed: {error_str}")
+            # 如果发生错误，回滚事务
+            try:
+                self.mydb.rollback()
+            except:
+                pass  # 连接可能已经断开，忽略回滚错误
+            
+            try:
+                self.mydb.close()
+            except:
+                pass  # 连接可能已经断开，忽略关闭错误
+                
+            raise Exception(f"SQL commit failed: {str(e)}")
 
     # 提交并关闭数据库连接
     def commit_close( self ) :
-        self.mydb.commit()
+        self.commit()
         self.close()
 
     # sql 语句执行器
