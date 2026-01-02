@@ -1,3 +1,14 @@
+class NDayInterval:
+    """
+    用于表示最近N天的SQL日期区间筛选。
+    例如: NDayInterval(7) => DATE_SUB(NOW(), INTERVAL 7 DAY)
+    """
+    def __init__(self, days):
+        self.days = days
+    def __str__(self):
+        return f"DATE_SUB(NOW(), INTERVAL {self.days} DAY)"
+
+
 def build_where_clause( where_conditions ) :
     """
     构造WHERE子句和对应的参数列表
@@ -36,15 +47,14 @@ def build_where_clause( where_conditions ) :
     
     for field, value in where_conditions.items() :
         if isinstance(value, tuple) and len(value) == 2 :
-            # 元组解包
-            operator, val = value       # 例如当 value = ('>', 100) 时， operator 会得到'>'， val 会得到100
-            
+            operator, val = value
+            # 新增：如果val是NDayInterval，拼接SQL表达式
+            if isinstance(val, NDayInterval):
+                clauses.append(f"{field} {operator} {val}")
             # 处理IN和NOT IN运算符的特殊情况
-            if operator.upper() in ('IN', 'NOT IN') and isinstance(val, (list, tuple)):
-                # 为列表中的每个元素创建一个%s占位符
+            elif operator.upper() in ('IN', 'NOT IN') and isinstance(val, (list, tuple)):
                 placeholders = ', '.join(['%s'] * len(val))
                 clauses.append(f"{field} {operator.upper()} ({placeholders})")
-                # 将列表中的每个元素添加到参数列表中
                 params.extend(val)
             else:
                 clauses.append(f"{field} {operator} %s")
