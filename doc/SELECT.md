@@ -139,7 +139,7 @@ result = executor.select(
 
 ### 基础条件格式
 
-支持两种条件定义方式：
+支持三种条件定义方式：
 
 ```python
 # 方式1：等值条件（推荐）
@@ -153,6 +153,12 @@ conditions = {
     'age': ('>', 18),
     'name': ('LIKE', '%John%'),
     'status': ('IN', ['active', 'pending'])
+}
+
+# 方式3：最近N天区间（NDayInterval）
+from lazy_mysql.tools.where_clause import NDayInterval
+conditions = {
+    'order_dateTime': ('>=', NDayInterval(7))  # 最近7天
 }
 ```
 
@@ -168,6 +174,7 @@ conditions = {
 | `<=` | `{'stock': ('<=', 10)}` | 小于等于 |
 | `LIKE` | `{'title': ('LIKE', '%Python%')}` | 模糊匹配 |
 | `NOT LIKE` | `{'title': ('NOT LIKE', '%Test%')}` | 反向模糊匹配 |
+| `NDayInterval` | `{'time': ('>=', NDayInterval(7))}` | 最近N天日期区间 |
 | `IN` | `{'category': ('IN', ['tech', 'science'])}` | 包含列表 |
 | `NOT IN` | `{'status': ('NOT IN', ['archived', 'deleted'])}` | 不包含列表 |
 

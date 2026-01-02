@@ -30,6 +30,7 @@ pip install --upgrade lazy-mysql
 ```python
 from lazy_mysql.executor import SQLExecutor
 from lazy_mysql.sql_config import MySQLConfig
+from lazy_mysql.tools.where_clause import NDayInterval
 
 # Create database configuration
 config = MySQLConfig(
@@ -66,7 +67,8 @@ results = executor.select(
     where_conditions={
         'status': ('IN', ['active', 'premium']),
         'score': ('BETWEEN', [80, 100]),
-        'name': ('LIKE', '%John%')
+        'name': ('LIKE', '%John%'),
+        'order_dateTime': ('>=', NDayInterval(7))  # Last 7 days
     },
     fetch_config={'output_format': 'df'}  # Return DataFrame format
 )

@@ -33,7 +33,13 @@ def build_where_clause( where_conditions ) :
         >>> clause, params = build_where_clause(conditions)
         >>> print(clause)  # 输出: name = %s AND age > %s
         >>> print(params)  # 输出: ['张三', 18]
-        
+
+        >>> from lazy_mysql.tools.where_clause import NDayInterval
+        >>> conditions = {'order_dateTime': ('>=', NDayInterval(7))}
+        >>> clause, params = build_where_clause(conditions)
+        >>> print(clause)  # 输出: order_dateTime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        >>> print(params)  # 输出: []
+
         >>> conditions = {'status': ('IN', [1, 2, 3]), 'create_time': ('>=', '2023-01-01')}
         >>> clause, params = build_where_clause(conditions)
         >>> print(clause)  # 输出: status IN (%s, %s, %s) AND create_time >= %s

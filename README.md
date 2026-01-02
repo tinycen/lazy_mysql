@@ -30,6 +30,8 @@ pip install --upgrade lazy-mysql
 ```python
 from lazy_mysql.executor import SQLExecutor
 from lazy_mysql.sql_config import MySQLConfig
+from lazy_mysql.tools.where_clause import NDayInterval
+
 
 # 创建数据库配置
 config = MySQLConfig(
@@ -42,7 +44,6 @@ config = MySQLConfig(
 # 创建执行器实例
 executor = SQLExecutor(config)
 ```
-
 ### 2. 智能查询操作
 
 ```python
@@ -60,16 +61,19 @@ active_users = executor.select(
 )
 
 # 复杂条件查询
+
 results = executor.select(
     'users',
     ['id', 'name', 'score'],
     where_conditions={
         'status': ('IN', ['active', 'premium']),
         'score': ('BETWEEN', [80, 100]),
-        'name': ('LIKE', '%John%')
+        'name': ('LIKE', '%John%'),
+        'order_dateTime': ('>=', NDayInterval(7))  # 最近7天
     },
     fetch_config={'output_format': 'df'}  # 返回DataFrame格式
 )
+
 ```
 
 ### 3. 批量数据插入

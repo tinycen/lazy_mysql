@@ -8,6 +8,8 @@ def select(executor, table_names, select_fields, where_conditions, order_by=None
     :param table_names: 表名，可以是字符串或列表
     :param select_fields: 要查询的字段列表
     :param where_conditions: WHERE条件，格式为字典
+        - 支持 NDayInterval 用于最近N天区间筛选，例如：
+        {'order_dateTime': ('>=', NDayInterval(7))}  # 最近7天
     :param order_by: ORDER BY子句
     :param limit: LIMIT子句
     :param join_conditions: JOIN条件，格式为字典，如 {"join_type": "JOIN", "conditions": ["field1", "=", "field2"]}
