@@ -1,13 +1,13 @@
 from ..tools.where_clause import build_where_clause
 
-def select(executor, table_names, select_fields, where_conditions, order_by=None, limit=None,
+def select(executor, table_names, select_fields, conditions, order_by=None, limit=None,
            join_conditions=None, self_close=False, fetch_config=None):
     """
     通用的SQL查询执行器方法，支持JOIN操作
     :param executor: SQLExecutor 实例
     :param table_names: 表名，可以是字符串或列表
     :param select_fields: 要查询的字段列表
-    :param where_conditions: WHERE条件，格式为字典
+    :param conditions: WHERE条件，格式为字典
         - 支持 NDayInterval 用于最近N天区间筛选，例如：
         {'order_dateTime': ('>=', NDayInterval(7))}  # 最近7天
     :param order_by: ORDER BY子句
@@ -114,7 +114,7 @@ def select(executor, table_names, select_fields, where_conditions, order_by=None
         raise ValueError("table_names must be a string or a list of strings")
 
     # 构造WHERE子句
-    where_clause, params = build_where_clause(where_conditions)
+    where_clause, params = build_where_clause(conditions)
     if where_clause:
         sql += f" WHERE {where_clause}"
 

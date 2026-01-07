@@ -16,7 +16,7 @@ select(
     executor: SQLExecutor,
     table_names,
     select_fields,
-    where_conditions,
+    conditions,
     order_by=None,
     limit=None,
     join_conditions=None,
@@ -32,7 +32,7 @@ select(
 | `executor` | SQLExecutor | 是 | SQL执行器实例 |
 | `table_names` | str/list | 是 | 表名，支持单表字符串或多表列表 |
 | `select_fields` | list/dict | 是 | 查询字段列表，支持字典格式指定表前缀 |
-| `where_conditions` | dict | 是 | WHERE条件字典，支持多种运算符 |
+| `conditions` | dict | 是 | WHERE条件字典，支持多种运算符 |
 | `order_by` | str | 否 | 排序子句，如 `"id DESC"` |
 | `limit` | int | 否 | 限制返回记录数 |
 | `join_conditions` | dict | 否 | JOIN配置，格式见下方说明 |
@@ -191,7 +191,7 @@ conditions = {
 result = executor.select(
     'users',
     ['id', 'username', 'score'],
-    where_conditions=conditions,
+    conditions=conditions,
     order_by='score DESC',
     limit=50
 )
@@ -208,7 +208,7 @@ result = executor.select(
 result = executor.select(
     'users',
     ['id', 'name', 'email'],
-    where_conditions={'status': 'active'},
+    conditions={'status': 'active'},
     order_by='registration_date DESC',  # 按最新注册时间排序
     limit=10  # 只获取前 10 条结果
 )
@@ -300,7 +300,7 @@ result = executor.select(
         'join_type': 'INNER JOIN',
         'conditions': ['users.id', '=', 'orders.user_id']
     },
-    where_conditions={'orders.status': 'completed'}
+    conditions={'orders.status': 'completed'}
 )
 ```
 
@@ -347,7 +347,7 @@ all_users = executor.select('users', ['id', 'name'], fetch_config={'fetch_mode':
 single_user = executor.select(
     'users',
     ['id', 'name', 'email'],
-    where_conditions={'id': 1},
+    conditions={'id': 1},
     fetch_config={'fetch_mode': 'oneTuple'}
 )
 # 返回: (1, 'Alice', 'alice@example.com')
@@ -428,7 +428,7 @@ result = executor.select(
 users, total = executor.select(
     'users',
     ['id', 'name', 'email'],
-    where_conditions={'status': 'active'},
+    conditions={'status': 'active'},
     fetch_config={
         'fetch_mode': 'all',
         'output_format': 'df_dict',
@@ -474,7 +474,7 @@ users = executor.select('users', ['*'])
 active_users = executor.select(
     'users',
     ['id', 'name'],
-    where_conditions={'status': 'active', 'last_login': ('>', '2024-01-01')}
+    conditions={'status': 'active', 'last_login': ('>', '2024-01-01')}
 )
 
 # ❌ 避免：应用层过滤
@@ -489,7 +489,7 @@ active_users = [u for u in all_users if u['status'] == 'active']
 indexed_query = executor.select(
     'users',
     ['id', 'email'],
-    where_conditions={'email': 'user@example.com'}  # email字段应有索引
+    conditions={'email': 'user@example.com'}  # email字段应有索引
 )
 ```
 
@@ -524,7 +524,7 @@ result = executor.select(
 result = executor.select(
     'users',
     ['id', 'name'],
-    where_conditions={'email': 'nonexistent@example.com'},
+    conditions={'email': 'nonexistent@example.com'},
     fetch_config={'fetch_mode': 'all', 'output_format': 'df_dict'}
 )
 
@@ -554,7 +554,7 @@ recent_high_value = executor.select(
         'join_type': 'INNER JOIN',
         'conditions': ['users.id', '=', 'orders.user_id']
     },
-    where_conditions={
+    conditions={
         'orders.created_at': ('>=', '2024-11-01'),
         'orders.status': 'completed'
     },

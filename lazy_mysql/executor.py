@@ -180,7 +180,7 @@ class SQLExecutor :
 
 
     # 插入数据
-    def insert( self , table_name , insert_fields , skip_duplicate = False, commit = False , self_close = False ) :
+    def insert( self , table_name , fields , skip_duplicate = False, commit = False , self_close = False ) :
         """
         智能插入数据到指定表，根据数据量自动选择最优插入策略
 
@@ -192,18 +192,18 @@ class SQLExecutor :
         - 数据量 >= 100000条: 使用LOAD DATA INFILE（分批50000条）
 
         :param table_name: 表名
-        :param insert_fields: 字段和值，格式为字典或字典列表，如 {'field1': 'value1', 'field2': 'value2'} 或 [{'field1': 'value1'}, {'field1': 'value2'}]
+        :param fields: 字段和值，格式为字典或字典列表，如 {'field1': 'value1', 'field2': 'value2'} 或 [{'field1': 'value1'}, {'field1': 'value2'}]
         :param skip_duplicate: 是否跳过重复数据
         :param commit: 是否自动提交
         :param self_close: 是否自动关闭连接
         :return: 插入成功的记录数（int）
         """
         from .utils.insert import insert as insert_func
-        return insert_func(self, table_name, insert_fields, skip_duplicate, commit, self_close)
+        return insert_func(self, table_name, fields, skip_duplicate, commit, self_close)
 
 
     # 插入或更新数据
-    def upsert( self , table_name , insert_fields , update_fields = None, commit = False , self_close = False ) :
+    def upsert( self , table_name , fields , fields_to_update = None, commit = False , self_close = False ) :
         """
         智能 INSERT ... ON DUPLICATE KEY UPDATE 执行器
         存在就更新，不存在就插入
@@ -211,31 +211,31 @@ class SQLExecutor :
         多条：list[dict] -> 批量 executemany upsert
 
         :param table_name: 表名
-        :param insert_fields: 字段和值，格式为字典或字典列表，如 {'field1': 'value1', 'field2': 'value2'} 或 [{'field1': 'value1'}, {'field1': 'value2'}]
-        :param update_fields: 指定冲突时更新的字段，None 表示更新所有字段
+        :param fields: 字段和值，格式为字典或字典列表，如 {'field1': 'value1', 'field2': 'value2'} 或 [{'field1': 'value1'}, {'field1': 'value2'}]
+        :param fields_to_update: 指定冲突时更新的字段集合，None 表示更新所有字段
         示例：{'age'} 表示只更新 age 字段，其他字段保持不变
         :param commit: 是否自动提交
         :param self_close: 是否自动关闭连接
         :return: 插入或更新成功的记录数（int）
         """
         from .utils.insert import upsert as upsert_func
-        return upsert_func(self, table_name, insert_fields, update_fields, commit, self_close)
+        return upsert_func(self, table_name, fields, fields_to_update, commit, self_close)
 
 
     # 更新数据
-    def update( self , table_name , update_fields , where_conditions , commit = False , self_close = False ) :
+    def update( self , table_name , fields , conditions , commit = False , self_close = False ) :
         """
         通用的SQL更新执行器方法，支持动态构造WHERE子句
 
         :param table_name: 表名
-        :param update_fields: 需要更新的字段和值，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
-        :param where_conditions: WHERE条件，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
+        :param fields: 需要更新的字段和值，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
+        :param conditions: WHERE条件，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
         :param commit: 是否自动提交
         :param self_close: 是否自动关闭连接
         :return: None
         """
         from .utils.update import update as update_func
-        update_func(self, table_name, update_fields, where_conditions, commit, self_close)
+        update_func(self, table_name, fields, conditions, commit, self_close)
 
     # 批量更新数据
     def batch_update( self , table_name , update_list , commit = False , self_close = False ) :
@@ -247,10 +247,10 @@ class SQLExecutor :
         2. 如果WHERE条件包含多字段或复杂条件 → 使用通用的 CASE WHEN ... THEN 语法
 
         :param table_name: 表名
-        :param update_list: 更新数据列表，每个元素包含 update_fields 和 where_conditions
+        :param update_list: 更新数据列表，每个元素包含 fields 和 conditions
             格式示例: [
-                {'update_fields': {'name': '张三', 'age': 25}, 'where_conditions': {'id': 1}},
-                {'update_fields': {'name': '李四', 'age': 30}, 'where_conditions': {'id': 2}}
+                {'fields': {'name': '张三', 'age': 25}, 'conditions': {'id': 1}},
+                {'fields': {'name': '李四', 'age': 30}, 'conditions': {'id': 2}}
             ]
         :param commit: 是否自动提交
         :param self_close: 是否自动关闭连接
@@ -259,15 +259,15 @@ class SQLExecutor :
         :example:
             # 单一主键条件（自动使用简化语法）
             >>> update_list = [
-            ...     {'update_fields': {'name': '张三', 'age': 25}, 'where_conditions': {'id': 1}},
-            ...     {'update_fields': {'name': '李四', 'age': 30}, 'where_conditions': {'id': 2}}
+            ...     {'fields': {'name': '张三', 'age': 25}, 'conditions': {'id': 1}},
+            ...     {'fields': {'name': '李四', 'age': 30}, 'conditions': {'id': 2}}
             ... ]
             >>> executor.batch_update('users', update_list, commit=True)
             
             # 复杂条件（自动使用通用语法）
             >>> update_list = [
-            ...     {'update_fields': {'status': 'active'}, 'where_conditions': {'id': 1, 'type': 'user'}},
-            ...     {'update_fields': {'status': 'inactive'}, 'where_conditions': {'id': ('>', 100)}}
+            ...     {'fields': {'status': 'active'}, 'conditions': {'id': 1, 'type': 'user'}},
+            ...     {'fields': {'status': 'inactive'}, 'conditions': {'id': ('>', 100)}}
             ... ]
             >>> executor.batch_update('users', update_list, commit=True)
         """
@@ -275,29 +275,29 @@ class SQLExecutor :
         batch_update_func(self, table_name, update_list, commit, self_close)
 
     # 删除数据
-    def delete( self , table_name , where_conditions , commit = False , self_close = False ) :
+    def delete( self , table_name , conditions , commit = False , self_close = False ) :
         """
         通用的SQL删除执行器方法，支持动态构造WHERE子句
 
         :param table_name: 表名
-        :param where_conditions: WHERE条件，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
+        :param conditions: WHERE条件，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
         :param commit: 是否自动提交
         :param self_close: 是否自动关闭连接
         :return: None
         """
         from .utils.delete import delete as delete_func
-        delete_func(self, table_name, where_conditions, commit, self_close)
+        delete_func(self, table_name, conditions, commit, self_close)
 
 
     # 选择数据
-    def select( self , table_names , select_fields , where_conditions = None, order_by = None , limit = None ,
+    def select( self , table_names , select_fields , conditions = None, order_by = None , limit = None ,
                 join_conditions = None ,
                 self_close = False , fetch_config = None ) :
         """
         通用的SQL查询执行器方法，支持JOIN操作
         :param table_names: 表名，可以是字符串或列表
         :param select_fields: 要查询的字段列表
-        :param where_conditions: WHERE条件，格式为字典
+        :param conditions: WHERE条件，格式为字典
             - 支持 NDayInterval 用于最近N天区间筛选，例如：
                 {'order_dateTime': ('>=', NDayInterval(7))}  # 最近7天
         :param order_by: ORDER BY子句
@@ -357,17 +357,17 @@ class SQLExecutor :
         :return: 查询结果，格式根据fetch_config配置而定
         """
         from .utils.select import select as select_func
-        return select_func(self, table_names, select_fields, where_conditions, order_by, limit, join_conditions, self_close, fetch_config)
+        return select_func(self, table_names, select_fields, conditions, order_by, limit, join_conditions, self_close, fetch_config)
 
 
-    def fetch_and_response( self,table_names , select_fields , where_conditions = None, 
+    def fetch_and_response( self,table_names , select_fields , conditions = None, 
         join_conditions=None,fetch_config = None,format_func=None , self_close = True ) :
         """
         通用的产品数据获取与格式化方法
         
         :param table_names: 表名，可以是字符串或列表
         :param select_fields: 要查询的字段列表
-        :param where_conditions: WHERE条件，格式为字典
+        :param conditions: WHERE条件，格式为字典
         :param join_conditions: JOIN条件，格式为字典
         :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为
             
@@ -416,7 +416,7 @@ class SQLExecutor :
         limit = fetch_config.get("limit", None)
         try :
             # 使用默认的select方法
-            result = self.select( table_names , select_fields , where_conditions ,order_by, limit,
+            result = self.select( table_names , select_fields , conditions ,order_by, limit,
                                             join_conditions, self_close , fetch_config )
             success = True
             message = "success"

@@ -13,10 +13,10 @@ def batch_update(executor, table_name, update_list, commit=False, self_close=Fal
     
     :param executor: SQLExecutor 实例
     :param table_name: 表名
-    :param update_list: 更新数据列表，每个元素包含 update_fields 和 where_conditions
+    :param update_list: 更新数据列表，每个元素包含 fields 和 conditions
         格式示例: [
-            {'update_fields': {'name': '张三', 'age': 25}, 'where_conditions': {'id': 1}},
-            {'update_fields': {'name': '李四', 'age': 30}, 'where_conditions': {'id': 2}}
+            {'fields': {'name': '张三', 'age': 25}, 'conditions': {'id': 1}},
+            {'fields': {'name': '李四', 'age': 30}, 'conditions': {'id': 2}}
         ]
     :param commit: 是否自动提交
     :param self_close: 是否自动关闭连接
@@ -25,15 +25,15 @@ def batch_update(executor, table_name, update_list, commit=False, self_close=Fal
     :example:
         # 单一主键条件（自动使用简化语法）
         >>> update_list = [
-        ...     {'update_fields': {'name': '张三', 'age': 25}, 'where_conditions': {'id': 1}},
-        ...     {'update_fields': {'name': '李四', 'age': 30}, 'where_conditions': {'id': 2}}
+        ...     {'fields': {'name': '张三', 'age': 25}, 'conditions': {'id': 1}},
+        ...     {'fields': {'name': '李四', 'age': 30}, 'conditions': {'id': 2}}
         ... ]
         >>> executor.batch_update('users', update_list, commit=True)
         
         # 复杂条件（自动使用通用语法）
         >>> update_list = [
-        ...     {'update_fields': {'status': 'active'}, 'where_conditions': {'id': 1, 'type': 'user'}},
-        ...     {'update_fields': {'status': 'inactive'}, 'where_conditions': {'id': ('>', 100)}}
+        ...     {'fields': {'status': 'active'}, 'conditions': {'id': 1, 'type': 'user'}},
+        ...     {'fields': {'status': 'inactive'}, 'conditions': {'id': ('>', 100)}}
         ... ]
         >>> executor.batch_update('users', update_list, commit=True)
     """
@@ -42,31 +42,31 @@ def batch_update(executor, table_name, update_list, commit=False, self_close=Fal
     
     # 验证数据格式
     for item in update_list:
-        if 'update_fields' not in item or 'where_conditions' not in item:
-            raise ValueError("update_list 中每个元素必须包含 'update_fields' 和 'where_conditions'")
+        if 'fields' not in item or 'conditions' not in item:
+            raise ValueError("update_list 中每个元素必须包含 'fields' 和 'conditions'")
         
-        # 防御：检查 where_conditions 不能为空或None
-        if not item['where_conditions']:
-            raise ValueError("where_conditions 不能为空，这会导致更新所有记录")
+        # 防御：检查 conditions 不能为空或None
+        if not item['conditions']:
+            raise ValueError("conditions 不能为空，这会导致更新所有记录")
     
     # 使用 pandas 分析 WHERE 条件的复杂度
-    df_conditions = pd.DataFrame([item['where_conditions'] for item in update_list])
+    df_conditions = pd.DataFrame([item['conditions'] for item in update_list])
     
     # 判断是否使用简化模式
     is_simple_case, key_field = _check_simple_case(df_conditions)
     
     # 收集所有更新字段
-    df_updates = pd.DataFrame([item['update_fields'] for item in update_list])
-    all_update_fields = df_updates.columns.tolist()
+    df_updates = pd.DataFrame([item['fields'] for item in update_list])
+    all_fields = df_updates.columns.tolist()
     
     # 根据模式选择不同的SQL构建策略
     if is_simple_case:
         sql, params = _build_simple_update_sql(
-            table_name, update_list, all_update_fields, key_field, df_conditions
+            table_name, update_list, all_fields, key_field, df_conditions
         )
     else:
         sql, params = _build_complex_update_sql(
-            table_name, update_list, all_update_fields
+            table_name, update_list, all_fields
         )
     
     # 执行SQL
@@ -105,62 +105,62 @@ def _process_update_value(value):
     return value
 
 
-def _build_case_clauses_simple(update_list, all_update_fields, key_field):
+def _build_case_clauses_simple(update_list, all_fields, key_field):
     """
     构建简化模式的CASE子句数据结构
     
     :param update_list: 更新数据列表
-    :param all_update_fields: 所有更新字段
+    :param all_fields: 所有更新字段
     :param key_field: 主键字段名
     :return: case_clauses - CASE子句数据字典
         格式: {field: [(key_value, value), ...]}
     """
-    case_clauses = {field: [] for field in all_update_fields}
+    case_clauses = {field: [] for field in all_fields}
     
     for item in update_list:
-        update_fields = item['update_fields']
-        key_value = item['where_conditions'][key_field]
+        record_fields = item['fields']
+        key_value = item['conditions'][key_field]
         
-        for field in all_update_fields:
-            if field in update_fields:
-                value = _process_update_value(update_fields[field])
+        for field in all_fields:
+            if field in record_fields:
+                value = _process_update_value(record_fields[field])
                 case_clauses[field].append((key_value, value))
     
     return case_clauses
 
 
-def _build_case_clauses_complex(update_list, all_update_fields):
+def _build_case_clauses_complex(update_list, all_fields):
     """
     构建复杂模式的CASE子句数据结构
     
     :param update_list: 更新数据列表
-    :param all_update_fields: 所有更新字段
-    :return: (case_clauses, all_where_conditions) - CASE子句数据和WHERE条件列表
+    :param all_fields: 所有更新字段
+    :return: (case_clauses, all_conditions) - CASE子句数据和WHERE条件列表
         case_clauses 格式: {field: [(where_clause, where_params, value), ...]}
-        all_where_conditions 格式: [(where_clause, where_params), ...]
+        all_conditions 格式: [(where_clause, where_params), ...]
     """
-    case_clauses = {field: [] for field in all_update_fields}
-    all_where_conditions = []
+    case_clauses = {field: [] for field in all_fields}
+    all_conditions = []
     
     for item in update_list:
-        update_fields = item['update_fields']
-        where_conditions = item['where_conditions']
+        record_fields = item['fields']
+        conditions = item['conditions']
         
         # 构建WHERE条件
-        where_clause, where_params = build_where_clause(where_conditions)
+        where_clause, where_params = build_where_clause(conditions)
         
         # 防御：检查 where_clause 不能为 None
         if where_clause is None or where_params is None:
-            raise ValueError(f"where_conditions 构建失败: {where_conditions}")
+            raise ValueError(f"conditions 构建失败: {conditions}")
         
-        all_where_conditions.append((where_clause, where_params))
+        all_conditions.append((where_clause, where_params))
         
-        for field in all_update_fields:
-            if field in update_fields:
-                value = _process_update_value(update_fields[field])
+        for field in all_fields:
+            if field in record_fields:
+                value = _process_update_value(record_fields[field])
                 case_clauses[field].append((where_clause, where_params, value))
     
-    return case_clauses, all_where_conditions
+    return case_clauses, all_conditions
 
 
 def _build_set_clause_simple(case_clauses, key_field):
@@ -223,7 +223,7 @@ def _build_set_clause_complex(case_clauses):
     return ', '.join(set_parts), params
 
 
-def _build_simple_update_sql(table_name, update_list, all_update_fields, key_field, df_conditions):
+def _build_simple_update_sql(table_name, update_list, all_fields, key_field, df_conditions):
     """
     构建简化模式的完整UPDATE SQL
     
@@ -240,7 +240,7 @@ def _build_simple_update_sql(table_name, update_list, all_update_fields, key_fie
     :return: (sql, params) - SQL语句和参数元组
     """
     # 构建CASE子句
-    case_clauses = _build_case_clauses_simple(update_list, all_update_fields, key_field)
+    case_clauses = _build_case_clauses_simple(update_list, all_fields, key_field)
     
     # 构建SET子句并收集参数
     set_clause, set_params = _build_set_clause_simple(case_clauses, key_field)
@@ -258,7 +258,7 @@ def _build_simple_update_sql(table_name, update_list, all_update_fields, key_fie
     return sql, tuple(all_params)
 
 
-def _build_complex_update_sql(table_name, update_list, all_update_fields):
+def _build_complex_update_sql(table_name, update_list, all_fields):
     """
     构建复杂模式的完整UPDATE SQL
     
@@ -282,7 +282,7 @@ def _build_complex_update_sql(table_name, update_list, all_update_fields):
     :return: (sql, params) - SQL语句和参数元组
     """
     # 构建CASE子句
-    case_clauses, all_where_conditions = _build_case_clauses_complex(update_list, all_update_fields)
+    case_clauses, all_conditions = _build_case_clauses_complex(update_list, all_fields)
     
     # 构建SET子句并收集参数
     set_clause, set_params = _build_set_clause_complex(case_clauses)
@@ -294,7 +294,7 @@ def _build_complex_update_sql(table_name, update_list, all_update_fields):
     # 3. 即使WHERE匹配了多条记录，CASE WHEN的ELSE子句会保持原值（不会误更新）
     final_where_parts = []
     where_params = []
-    for where_clause, params in all_where_conditions:
+    for where_clause, params in all_conditions:
         final_where_parts.append(f"({where_clause})")
         where_params.extend(params)
     where_clause = ' OR '.join(final_where_parts)

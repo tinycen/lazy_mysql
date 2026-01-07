@@ -30,7 +30,7 @@
 insert(
     executor: SQLExecutor,
     table_name,
-    insert_fields,
+    fields,
     skip_duplicate=False,
     commit=False,
     self_close=False,
@@ -44,7 +44,7 @@ insert(
 |--------|------|------|------|
 | `executor` | SQLExecutor | 是 | SQL执行器实例 |
 | `table_name` | str | 是 | 目标表名 |
-| `insert_fields` | dict/list | 是 | 插入数据，支持单条字典或字典列表 |
+| `fields` | dict/list | 是 | 插入数据，支持单条字典或字典列表 |
 | `skip_duplicate` | bool | 否 | 是否跳过重复记录，默认False |
 | `commit` | bool | 否 | 是否自动提交事务，默认False |
 | `self_close` | bool | 否 | 是否自动关闭连接，默认False |
@@ -87,7 +87,7 @@ print("记录插入成功！")
 
 **必需参数：**
 - `table_name`：目标表名（字符串）
-- `insert_fields`：字段-值对的字典或字典列表
+- `fields`：字段-值对的字典或字典列表
 
 **可选参数：**
 - `skip_duplicate`：是否跳过重复记录（默认：False）
@@ -158,8 +158,8 @@ print(f"插入了 {inserted_count} 条新记录（重复项已跳过）")
 upsert(
     executor: SQLExecutor,
     table_name,
-    insert_fields,
-    update_fields=None,
+    fields,
+    fields_to_update=None,
     commit=False,
     self_close=False
 )
@@ -171,8 +171,8 @@ upsert(
 |--------|------|------|------|
 | `executor` | SQLExecutor | 是 | SQL执行器实例 |
 | `table_name` | str | 是 | 目标表名 |
-| `insert_fields` | dict/list | 是 | 插入数据，支持单条字典或字典列表 |
-| `update_fields` | set/list | 否 | 冲突时更新的字段集合，默认None表示更新所有字段 |
+| `fields` | dict/list | 是 | 插入数据，支持单条字典或字典列表 |
+| `fields_to_update` | set/list | 否 | 冲突时更新的字段集合，默认None表示更新所有字段 |
 | `commit` | bool | 否 | 是否自动提交事务，默认False |
 | `self_close` | bool | 否 | 是否自动关闭连接，默认False |
 
@@ -210,7 +210,7 @@ print(f"成功处理 {upserted_count} 条记录！")
 
 ### 选择性字段更新
 
-通过 `update_fields` 参数可以精确控制冲突时只更新特定字段，其他字段保持不变：
+通过 `fields_to_update` 参数可以精确控制冲突时只更新特定字段，其他字段保持不变：
 
 ```python
 # 只更新 age 和 updated_at 字段，name 和 email 保持不变
@@ -223,7 +223,7 @@ user_data = {
 }
 
 # 指定只更新特定字段
-executor.upsert('users', user_data, update_fields={'age', 'updated_at'}, commit=True)
+executor.upsert('users', user_data, fields_to_update={'age', 'updated_at'}, commit=True)
 print("选择性字段更新完成！")
 ```
 
@@ -246,7 +246,7 @@ print("选择性字段更新完成！")
 ### 最佳实践建议
 
 1. **使用主键或唯一索引**：确保表有适当的主键或唯一索引来触发冲突检测
-2. **选择性更新**：使用 `update_fields` 避免不必要的字段更新
+2. **选择性更新**：使用 `fields_to_update` 避免不必要的字段更新
 3. **批量处理**：大批量数据使用列表格式获得更好性能
 4. **事务管理**：复杂业务逻辑中手动控制提交时机
 

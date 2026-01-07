@@ -9,7 +9,7 @@ class NDayInterval:
         return f"DATE_SUB(NOW(), INTERVAL {self.days} DAY)"
 
 
-def build_where_clause( where_conditions ) :
+def build_where_clause( conditions ) :
     """
     构造WHERE子句和对应的参数列表
     
@@ -17,7 +17,7 @@ def build_where_clause( where_conditions ) :
     1. 简单值：自动生成等值比较条件
     2. 元组格式：自定义比较运算符和值
     
-    :param where_conditions: WHERE条件，格式为字典，每个键为字段名，每个值可以是:
+        :param conditions: WHERE条件，格式为字典，每个键为字段名，每个值可以是:
         - 简单值: 默认使用 = 比较，如 {'name': '张三', 'age': 25}
         - 元组: (比较运算符, 值) 如 {'age': ('>', 18)}, {'name': ('LIKE', '%张%')}
         - 支持的比较运算符包括: =, !=, <>, >, >=, <, <=, LIKE, NOT LIKE, IN, NOT IN
@@ -45,13 +45,13 @@ def build_where_clause( where_conditions ) :
         >>> print(clause)  # 输出: status IN (%s, %s, %s) AND create_time >= %s
         >>> print(params)  # 输出: [1, 2, 3, '2023-01-01']
     """
-    if not where_conditions :
+    if not conditions :
         return None , None
 
     clauses = []
     params = []
     
-    for field, value in where_conditions.items() :
+    for field, value in conditions.items() :
         if isinstance(value, tuple) and len(value) == 2 :
             operator, val = value
             # 新增：如果val是NDayInterval，拼接SQL表达式

@@ -55,7 +55,7 @@ print(users)
 active_users = executor.select(
     'users',
     ['id', 'name', 'email'],
-    where_conditions={'status': 'active', 'age': ('>', 18)},
+    conditions={'status': 'active', 'age': ('>', 18)},
     order_by='created_at DESC',
     limit=10
 )
@@ -65,7 +65,7 @@ active_users = executor.select(
 results = executor.select(
     'users',
     ['id', 'name', 'score'],
-    where_conditions={
+    conditions={
         'status': ('IN', ['active', 'premium']),
         'score': ('BETWEEN', [80, 100]),
         'name': ('LIKE', '%John%'),
@@ -107,12 +107,12 @@ executor.upsert('users', user_data, commit=True)
 executor.update(
     'users',
     {'status': 'premium', 'updated_at': '2024-01-15 10:00:00'},
-    where_conditions={'last_login': ('>=', '2024-01-01'), 'points': ('>=', 1000)},
+    conditions={'last_login': ('>=', '2024-01-01'), 'points': ('>=', 1000)},
     commit=True
 )
 
 # 安全删除（必须指定条件）
-executor.delete('users', where_conditions={'status': 'inactive', 'last_login': ('<', '2023-01-01')}, commit=True)
+executor.delete('users', conditions={'status': 'inactive', 'last_login': ('<', '2023-01-01')}, commit=True)
 ```
 
 ### 5. 使用完毕后关闭连接

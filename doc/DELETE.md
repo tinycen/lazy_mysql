@@ -11,7 +11,7 @@
 delete(
     executor: SQLExecutor,
     table_name: str,
-    where_conditions: dict,
+    conditions: dict,
     commit=False,
     self_close=False
 )
@@ -23,7 +23,7 @@ delete(
 |--------|------|------|------|
 | `executor` | SQLExecutor | 是 | SQL执行器实例 |
 | `table_name` | str | 是 | 目标表名 |
-| `where_conditions` | dict | 是 | WHERE条件字典，支持多种运算符 |
+| `conditions` | dict | 是 | WHERE条件字典，支持多种运算符 |
 | `commit` | bool | 否 | 是否自动提交事务，默认False |
 | `self_close` | bool | 否 | 是否自动关闭数据库连接，默认False |
 
@@ -37,7 +37,7 @@ delete(
 # 删除ID为1001的用户
 executor.delete(
     table_name='users',
-    where_conditions={'id': 1001},
+    conditions={'id': 1001},
     commit=True
 )
 # 生成SQL: DELETE FROM users WHERE id = %s
@@ -45,7 +45,7 @@ executor.delete(
 # 删除特定邮箱的用户
 executor.delete(
     table_name='users',
-    where_conditions={'email': 'spam@example.com', 'status': 'unverified'},
+    conditions={'email': 'spam@example.com', 'status': 'unverified'},
     commit=True
 )
 # 生成SQL: DELETE FROM users WHERE email = %s AND status = %s
@@ -77,7 +77,7 @@ executor.delete(
 # 删除长时间未登录的非活跃用户
 executor.delete(
     table_name='users',
-    where_conditions={
+    conditions={
         'last_login': ('<', '2023-01-01'),
         'status': ('IN', ['inactive', 'suspended']),
         'login_attempts': ('>=', 5),
@@ -98,14 +98,14 @@ executor.delete(
 orphan_users = executor.select(
     'users',
     ['id'],
-    where_conditions={'id': ('NOT IN', executor.select('orders', ['user_id'], fetch_config={'fetch_mode': 'list_1'}))}
+    conditions={'id': ('NOT IN', executor.select('orders', ['user_id'], fetch_config={'fetch_mode': 'list_1'}))}
 )
 
 # 第2步：删除这些用户
 if orphan_users:
     executor.delete(
         table_name='users',
-        where_conditions={'id': ('IN', [u['id'] for u in orphan_users])},
+        conditions={'id': ('IN', [u['id'] for u in orphan_users])},
         commit=True
     )
 ```
@@ -118,7 +118,7 @@ if orphan_users:
 try:
     executor.delete(
         table_name='users',
-        where_conditions={'id': 'invalid_id'},  # 类型不匹配
+        conditions={'id': 'invalid_id'},  # 类型不匹配
         commit=True
     )
 except Exception as e:
@@ -150,7 +150,7 @@ def debug_delete(executor, table, conditions):
     preview = executor.select(
         table,
         ['*'],
-        where_conditions=conditions,
+        conditions=conditions,
         limit=10
     )
     print(f"将要删除的前10条记录：{preview}")
@@ -159,7 +159,7 @@ def debug_delete(executor, table, conditions):
     count = executor.select(
         table,
         ['COUNT(*) as total'],
-        where_conditions=conditions,
+        conditions=conditions,
         fetch_config={'fetch_mode': 'one'}
     )
     print(f"总计将删除 {count} 条记录")
@@ -182,7 +182,7 @@ try:
     user = executor.select(
         'users',
         ['id', 'username', 'email'],
-        where_conditions={'id': user_id},
+        conditions={'id': user_id},
         fetch_config={'fetch_mode': 'oneTuple'}
     )
     
@@ -190,7 +190,7 @@ try:
         print(f"找到用户：{user}")
         executor.delete(
             table_name='users',
-            where_conditions={'id': user_id},
+            conditions={'id': user_id},
             commit=True
         )
         print("用户删除成功")
@@ -204,7 +204,7 @@ try:
     old_logs = executor.select(
         'system_logs',
         ['COUNT(*) as count'],
-        where_conditions={'created_at': ('<', cutoff_date.strftime('%Y-%m-%d'))},
+        conditions={'created_at': ('<', cutoff_date.strftime('%Y-%m-%d'))},
         fetch_config={'fetch_mode': 'one'}
     )
     
@@ -213,7 +213,7 @@ try:
         
         executor.delete(
             table_name='system_logs',
-            where_conditions={'created_at': ('<', cutoff_date.strftime('%Y-%m-%d'))},
+            conditions={'created_at': ('<', cutoff_date.strftime('%Y-%m-%d'))},
             commit=True
         )
         
@@ -222,7 +222,7 @@ try:
     # 示例3：复杂条件删除
     executor.delete(
         table_name='notifications',
-        where_conditions={
+        conditions={
             'is_read': True,
             'created_at': ('<', '2024-01-01'),
             'priority': ('IN', ['low', 'medium'])

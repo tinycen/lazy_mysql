@@ -10,8 +10,8 @@
 update(
     executor: SQLExecutor,
     table_name: str,
-    update_fields: dict,
-    where_conditions: dict,
+    fields: dict,
+    conditions: dict,
     commit: bool = False,
     self_close: bool = False
 )
@@ -23,15 +23,15 @@ update(
 |--------|------|------|--------|------|
 | `executor` | SQLExecutor | 是 | - | SQL执行器实例，负责数据库连接和事务管理 |
 | `table_name` | str | 是 | - | 要更新的表名，支持标准SQL表名格式 |
-| `update_fields` | dict | 是 | - | 需要更新的字段和值，格式为 `{'字段名': '新值'}` |
-| `where_conditions` | dict | 是 | - | WHERE条件字典，支持多种运算符和复杂条件 |
+| `fields` | dict | 是 | - | 需要更新的字段和值，格式为 `{'字段名': '新值'}` |
+| `conditions` | dict | 是 | - | WHERE条件字典，支持多种运算符和复杂条件 |
 | `commit` | bool | 否 | `False` | 是否自动提交事务，`False` 需要手动提交 |
 | `self_close` | bool | 否 | `False` | 操作完成后是否自动关闭数据库连接 |
 
 ### 参数详解
 
-#### update_fields 格式说明
-`update_fields` 参数接受一个字典，键为字段名，值为要设置的新值：
+#### fields 格式说明
+`fields` 参数接受一个字典，键为字段名，值为要设置的新值：
 
 ```python
 # 简单更新
@@ -42,12 +42,12 @@ update(
 ```
 > ✅ **自动JSON序列化**
 > 
-> **列表和字典类型自动处理**：当`update_fields`中的值为Python列表或字典时，系统会自动将其转换为JSON字符串，无需手动处理。
+> **列表和字典类型自动处理**：当`fields`中的值为Python列表或字典时，系统会自动将其转换为JSON字符串，无需手动处理。
 > 
 > **自动转换示例**：
 > ```python
 > # 系统会自动处理，无需手动转换
-> update_fields = {
+> fields = {
 >     "config": {"key": "value", "enabled": True},  # dict类型 → 自动JSON序列化
 >     "tags": ["python", "mysql", "lazy"],           # list类型 → 自动JSON序列化
 >     "name": "张三"                                   # 普通字符串 → 保持原样
@@ -66,7 +66,7 @@ update(
 > - 自动处理确保数据格式正确，避免SQL注入风险
 
 
-#### where_conditions 条件格式
+#### conditions 条件格式
 
 **方式1：等值条件（推荐）**
 ```python
@@ -121,8 +121,8 @@ executor = SQLExecutor(config)
 # 更新单个用户的信息
 executor.update(
     table_name='users',
-    update_fields={'name': '张三', 'email': 'zhangsan@example.com', 'age': 28},
-    where_conditions={'id': 1},
+    fields={'name': '张三', 'email': 'zhangsan@example.com', 'age': 28},
+    conditions={'id': 1},
     commit=True
 )
 ```
@@ -140,8 +140,8 @@ UPDATE users SET name = %s, email = %s, age = %s WHERE id = %s;
 # 更新所有活跃用户的状态
 executor.update(
     table_name='users',
-    update_fields={'status': 'premium', 'updated_at': '2024-01-15 10:00:00'},
-    where_conditions={
+    fields={'status': 'premium', 'updated_at': '2024-01-15 10:00:00'},
+    conditions={
         'last_login': ('>=', '2024-01-01'),
         'status': ('IN', ['active', 'trial']),
         'points': ('>=', 1000)
@@ -167,8 +167,8 @@ conditions = {
 
 executor.update(
     table_name='employees',
-    update_fields={'bonus_eligible': True, 'review_date': '2024-03-01'},
-    where_conditions=conditions,
+    fields={'bonus_eligible': True, 'review_date': '2024-03-01'},
+    conditions=conditions,
     commit=True
 )
 ```
@@ -203,15 +203,15 @@ executor.execute(
 # 好的做法：使用索引字段
 executor.update(
     table_name='users',
-    update_fields={'status': 'active'},
-    where_conditions={'email': 'user@example.com'}  # email字段应有索引
+    fields={'status': 'active'},
+    conditions={'email': 'user@example.com'}  # email字段应有索引
 )
 
 # 避免：使用无索引的大字段
 executor.update(
     table_name='users',
-    update_fields={'status': 'active'},
-    where_conditions={'description': ('LIKE', '%关键词%')}  # 性能差
+    fields={'status': 'active'},
+    conditions={'description': ('LIKE', '%关键词%')}  # 性能差
 )
 ```
 
@@ -224,8 +224,8 @@ executor.update(
 # 安全：总是指定条件
 executor.update(
     table_name='users',
-    update_fields={'status': 'active'},
-    where_conditions={'status': 'inactive'}  # 明确指定范围
+    fields={'status': 'active'},
+    conditions={'status': 'inactive'}  # 明确指定范围
 )
 ```
 
@@ -239,8 +239,8 @@ def safe_update(table, fields, conditions):
     try:
         executor.update(
             table_name=table,
-            update_fields=fields,
-            where_conditions=conditions,
+            fields=fields,
+            conditions=conditions,
             commit=True
         )
         return True, "更新成功"
@@ -297,7 +297,7 @@ batch_update(
 | 参数名 | 类型 | 必填 | 默认值 | 说明 |
 |--------|------|------|--------|------|
 | `table_name` | str | 是 | - | 要更新的表名 |
-| `update_list` | list | 是 | - | 更新数据列表，每个元素包含 `update_fields` 和 `where_conditions` |
+| `update_list` | list | 是 | - | 更新数据列表，每个元素包含 `fields` 和 `conditions` |
 | `commit` | bool | 否 | `False` | 是否自动提交事务 |
 | `self_close` | bool | 否 | `False` | 操作完成后是否自动关闭数据库连接 |
 
@@ -314,8 +314,8 @@ batch_update(
 
 ```python
 update_list = [
-    {'update_fields': {'name': '张三', 'age': 25}, 'where_conditions': {'id': 1}},
-    {'update_fields': {'name': '李四', 'age': 30}, 'where_conditions': {'id': 2}}
+    {'fields': {'name': '张三', 'age': 25}, 'conditions': {'id': 1}},
+    {'fields': {'name': '李四', 'age': 30}, 'conditions': {'id': 2}}
 ]
 
 executor.batch_update('users', update_list, commit=True)
@@ -335,8 +335,8 @@ WHERE id IN (%s, %s);
 
 ```python
 update_list = [
-    {'update_fields': {'status': 'active'}, 'where_conditions': {'id': 1, 'type': 'user'}},
-    {'update_fields': {'status': 'inactive'}, 'where_conditions': {'id': 2}}
+    {'fields': {'status': 'active'}, 'conditions': {'id': 1, 'type': 'user'}},
+    {'fields': {'status': 'inactive'}, 'conditions': {'id': 2}}
 ]
 
 executor.batch_update('users', update_list, commit=True)
@@ -366,6 +366,6 @@ WHERE (id = %s AND type = %s) OR (id = %s);
 ### 注意事项
 
 1. **WHERE条件不能为空**：每个更新项都必须有明确的WHERE条件
-2. **字段一致性**：所有 `update_fields` 中的字段会被统一处理
+2. **字段一致性**：所有 `fields` 中的字段会被统一处理
 3. **数据类型**：列表和字典类型会自动转换为JSON字符串
 4. **性能考虑**：适合中等批量更新（100-10000条记录）
