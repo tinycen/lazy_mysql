@@ -66,20 +66,20 @@ def insert(executor, table_name, fields, skip_duplicate=False, commit=False, sel
         raise ValueError("fields must be a dict or a list of dicts")
 
 
-def upsert(executor, table_name, fields, fields_to_update=None, commit=False, self_close=False):
+def upsert(executor, table_name, fields, fields_update=None, commit=False, self_close=False):
     """
     智能 INSERT ... ON DUPLICATE KEY UPDATE 执行器
     存在就更新，不存在就插入
     单条：dict -> 直接 upsert
     多条：list[dict] -> 批量 executemany upsert
     
-    :param fields_to_update: 指定冲突时更新的字段，None 表示更新所有字段
+    :param fields_update: 指定冲突时更新的字段，None 表示更新所有字段
     示例：{'age'} 表示只更新 age 字段，其他字段保持不变
     """
     if isinstance(fields, dict):
-        return _upsert_single(executor, table_name, fields, fields_to_update, commit, self_close)
+        return _upsert_single(executor, table_name, fields, fields_update, commit, self_close)
     elif isinstance(fields, list) and fields:
-        return _upsert_batch(executor, table_name, fields, fields_to_update, commit, self_close)
+        return _upsert_batch(executor, table_name, fields, fields_update, commit, self_close)
     else:
         if self_close:
             executor.close()
@@ -94,17 +94,17 @@ def _build_insert_sql(table_name, fields, skip_duplicate=False):
     return f'{insert_keyword} INTO {table_name} ({field_names}) VALUES {placeholders}'
 
 
-def _upsert_single(executor, table_name, data, fields_to_update, commit, self_close):
+def _upsert_single(executor, table_name, data, fields_update, commit, self_close):
     keys = list(data.keys())
     insert_sql = f"INSERT INTO {table_name} ({', '.join(keys)}) VALUES ({', '.join(['%s'] * len(keys))})"
     
     # 确定要更新的字段
-    if fields_to_update is None:
+    if fields_update is None:
         # 更新所有字段
         update_keys = keys
     else:
         # 只更新指定的字段
-        update_keys = [k for k in keys if k in fields_to_update]
+        update_keys = [k for k in keys if k in fields_update]
     
     update_sql = ', '.join([f"{k} = VALUES({k})" for k in update_keys])
     sql = f"{insert_sql} ON DUPLICATE KEY UPDATE {update_sql}"
@@ -112,17 +112,17 @@ def _upsert_single(executor, table_name, data, fields_to_update, commit, self_cl
     return 1
 
 
-def _upsert_batch(executor, table_name, data_list, fields_to_update, commit, self_close):
+def _upsert_batch(executor, table_name, data_list, fields_update, commit, self_close):
     keys = list(data_list[0].keys())
     insert_sql = f"INSERT INTO {table_name} ({', '.join(keys)}) VALUES ({', '.join(['%s'] * len(keys))})"
     
     # 确定要更新的字段
-    if fields_to_update is None:
+    if fields_update is None:
         # 更新所有字段
         update_keys = keys
     else:
         # 只更新指定的字段
-        update_keys = [k for k in keys if k in fields_to_update]
+        update_keys = [k for k in keys if k in fields_update]
     
     update_sql = ', '.join([f"{k} = VALUES({k})" for k in update_keys])
     sql = f"{insert_sql} ON DUPLICATE KEY UPDATE {update_sql}"
