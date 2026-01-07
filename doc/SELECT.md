@@ -15,7 +15,7 @@
 select(
     executor: SQLExecutor,
     table_names,
-    select_fields,
+    fields,
     conditions,
     order_by=None,
     limit=None,
@@ -31,7 +31,7 @@ select(
 |--------|------|------|------|
 | `executor` | SQLExecutor | 是 | SQL执行器实例 |
 | `table_names` | str/list | 是 | 表名，支持单表字符串或多表列表 |
-| `select_fields` | list/dict | 是 | 查询字段列表，支持字典格式指定表前缀 |
+| `fields` | list/dict | 是 | 查询字段列表，支持字典格式指定表前缀 |
 | `conditions` | dict | 是 | WHERE条件字典，支持多种运算符 |
 | `order_by` | str | 否 | 排序子句，如 `"id DESC"` |
 | `limit` | int | 否 | 限制返回记录数 |
@@ -59,7 +59,7 @@ select(
 #### 3. data_label - 自定义列名
 用于 DataFrame 的列名或字典的键名重命名：
 - 类型: `list[str]`
-- 如果为 `None`，系统会根据 `select_fields` 自动生成
+- 如果为 `None`，系统会根据 `fields` 自动生成
 
 #### 4. show_count - 显示计数
 - 类型: `bool`

@@ -1,12 +1,12 @@
 from ..tools.where_clause import build_where_clause
 
-def select(executor, table_names, select_fields, conditions, order_by=None, limit=None,
+def select(executor, table_names, fields=None, conditions=None, order_by=None, limit=None,
            join_conditions=None, self_close=False, fetch_config=None):
     """
     通用的SQL查询执行器方法，支持JOIN操作
     :param executor: SQLExecutor 实例
     :param table_names: 表名，可以是字符串或列表
-    :param select_fields: 要查询的字段列表
+    :param fields: 要查询的字段列表
     :param conditions: WHERE条件，格式为字典
         - 支持 NDayInterval 用于最近N天区间筛选，例如：
         {'order_dateTime': ('>=', NDayInterval(7))}  # 最近7天
@@ -30,7 +30,7 @@ def select(executor, table_names, select_fields, conditions, order_by=None, limi
            - "df_dict": 返回字典列表（DataFrame转dict）
            
         3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
-           如果为None，系统会根据select_fields自动生成
+           如果为None，系统会根据fields自动生成
            
         4. show_count (bool): 是否显示查询结果数量，默认为False
            
@@ -66,16 +66,19 @@ def select(executor, table_names, select_fields, conditions, order_by=None, limi
             }
     :return: 查询结果，格式根据fetch_config配置而定
     """
-    # 处理select_fields参数
-    if isinstance(select_fields, dict):
+    if fields is None:
+        raise ValueError("fields 参数不能为空")
+
+    # 处理fields参数
+    if isinstance(fields, dict):
         # 如果是字典，自动添加表名前缀
         processed_fields = []
-        for table, fields in select_fields.items():
-            for field in fields:
+        for table, table_fields in fields.items():
+            for field in table_fields:
                 processed_fields.append(f"{table}.{field}")
         columns = processed_fields
     else :
-        columns = select_fields
+        columns = fields
     # 构造select子句
     select_clause = ', '.join(columns)
 
@@ -129,7 +132,7 @@ def select(executor, table_names, select_fields, conditions, order_by=None, limi
     if fetch_config is None:
         fetch_config = {}
 
-    fetch_mode = fetch_config["fetch_mode"]
+    fetch_mode = fetch_config.get("fetch_mode", "all")
     if fetch_mode != "all" :
         output_format = ""
     else :
@@ -139,19 +142,19 @@ def select(executor, table_names, select_fields, conditions, order_by=None, limi
     # 获取data_label参数
     data_label = fetch_config.get("data_label", None)
     
-    # 如果data_label为None，则根据select_fields自动生成
+    # 如果data_label为None，则根据fields自动生成
     if data_label is None and "df" in output_format :
-        if isinstance(select_fields, dict):
-            # 如果select_fields是字典，展平为列表
+        if isinstance(fields, dict):
+            # 如果fields是字典，展平为列表
             data_label = []
-            for table, fields in select_fields.items():
-                for field in fields:
+            for table, table_fields in fields.items():
+                for field in table_fields:
                     if field in data_label :
                         raise ValueError(f"字段值重复：Field '{field}' already exists in data_label")
                     data_label.append(field)
         else:
-            # 如果select_fields是列表，直接使用
-            data_label = select_fields
+            # 如果fields是列表，直接使用
+            data_label = fields
 
     result = executor.fetch_format(sql, fetch_mode, output_format, show_count, data_label, params, self_close)
     return result

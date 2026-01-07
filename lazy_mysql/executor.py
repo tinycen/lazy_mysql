@@ -290,13 +290,13 @@ class SQLExecutor :
 
 
     # 选择数据
-    def select( self , table_names , select_fields , conditions = None, order_by = None , limit = None ,
+    def select( self , table_names , fields = None , conditions = None, order_by = None , limit = None ,
                 join_conditions = None ,
                 self_close = False , fetch_config = None ) :
         """
         通用的SQL查询执行器方法，支持JOIN操作
         :param table_names: 表名，可以是字符串或列表
-        :param select_fields: 要查询的字段列表
+        :param fields: 要查询的字段列表
         :param conditions: WHERE条件，格式为字典
             - 支持 NDayInterval 用于最近N天区间筛选，例如：
                 {'order_dateTime': ('>=', NDayInterval(7))}  # 最近7天
@@ -320,7 +320,7 @@ class SQLExecutor :
                - "df_dict": 返回字典列表（DataFrame转dict）
                
             3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
-               如果为None，系统会根据select_fields自动生成
+                    如果为None，系统会根据fields自动生成
                
             4. show_count (bool): 是否显示查询结果数量，默认为False
                
@@ -356,17 +356,20 @@ class SQLExecutor :
                 }
         :return: 查询结果，格式根据fetch_config配置而定
         """
+        if fields is None:
+            raise ValueError("fields 参数不能为空")
+
         from .utils.select import select as select_func
-        return select_func(self, table_names, select_fields, conditions, order_by, limit, join_conditions, self_close, fetch_config)
+        return select_func(self, table_names, fields, conditions, order_by, limit, join_conditions, self_close, fetch_config)
 
 
-    def fetch_and_response( self,table_names , select_fields , conditions = None, 
+    def fetch_and_response( self,table_names , fields = None , conditions = None, 
         join_conditions=None,fetch_config = None,format_func=None , self_close = True ) :
         """
         通用的产品数据获取与格式化方法
         
         :param table_names: 表名，可以是字符串或列表
-        :param select_fields: 要查询的字段列表
+        :param fields: 要查询的字段列表
         :param conditions: WHERE条件，格式为字典
         :param join_conditions: JOIN条件，格式为字典
         :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为
@@ -385,7 +388,7 @@ class SQLExecutor :
                - "": 返回原始元组列表
                
             3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
-               如果为None，系统会根据select_fields自动生成
+                    如果为None，系统会根据fields自动生成
                
             4. show_count (bool): 是否显示查询结果数量，默认为False
                
@@ -409,6 +412,8 @@ class SQLExecutor :
         :param self_close: 是否自动关闭连接
         :return: 包含success、result、message的字典
         """
+        if fields is None:
+            raise ValueError("fields 参数不能为空")
         
         if fetch_config is None :
             fetch_config = { "fetch_mode" : "all" , "output_format" : "df_dict" , "data_label" : None }
@@ -416,7 +421,7 @@ class SQLExecutor :
         limit = fetch_config.get("limit", None)
         try :
             # 使用默认的select方法
-            result = self.select( table_names , select_fields , conditions ,order_by, limit,
+            result = self.select( table_names , fields , conditions ,order_by, limit,
                                             join_conditions, self_close , fetch_config )
             success = True
             message = "success"
