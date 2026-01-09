@@ -1,7 +1,8 @@
 class NDayInterval:
     """
-    用于表示最近N天的SQL日期区间筛选。
+    表示返回N天前的日期，可用于SQL中与 ">=" 运算符配合，筛选最近N天的数据。
     例如: NDayInterval(7) => DATE_SUB(NOW(), INTERVAL 7 DAY)
+    用法示例：WHERE date_column >= DATE_SUB(NOW(), INTERVAL 7 DAY)
     """
     def __init__(self, days):
         self.days = days
