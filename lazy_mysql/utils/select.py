@@ -143,7 +143,7 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
     data_label = fetch_config.get("data_label", None)
     
     # 如果data_label为None，则根据fields自动生成
-    if data_label is None and "df" in output_format :
+    if data_label is None and ("df" in output_format or "dict" in output_format) :
         if isinstance(fields, dict):
             # 如果fields是字典，展平为列表
             data_label = []
