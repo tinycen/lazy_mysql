@@ -43,14 +43,19 @@ def fetch_format( executor , sql , fetch_mode , output_format = "" , show_count 
                 myresult = myresult.to_dict( orient = "records" )
     elif fetch_mode == "oneTuple" :
         myresult = executor.mycursor.fetchone()  # 接收返回结果行,返回结果为 tuple（元组）,如果没有结果,则仅返回 None
+        # 新增：支持 output_format == 'dict' 且 myresult/data_label 不为空时，转为 dict
+        if "dict" in output_format and myresult and data_label:
+            if len(myresult) != len(data_label):
+                raise ValueError(f"data_label 长度与查询结果字段数不一致！data_label : {data_label} , myresult : {myresult}")
+            myresult = dict(zip(data_label, myresult))
+    
     elif fetch_mode == "one" :
-        result = executor.mycursor.fetchone()
+        result = executor.mycursor.fetchone()  # 接收返回结果行,返回结果为 tuple（元组）,如果没有结果,则仅返回 None
         if result is None:
             myresult = None
-        elif isinstance(result,tuple):
-            myresult = result[ 0 ] if result else None
         else:
-            myresult = result
+            myresult = result[ 0 ] if result else None
+            # myresult = result
     else :
         executor.close()
         raise ValueError( f"fetch_mode error :{fetch_mode} , only supported [ all , oneTuple , one ]" )
