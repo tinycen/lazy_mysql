@@ -45,16 +45,17 @@ select(
 
 #### 1. fetch_mode - 获取模式
 控制返回数据的数量和格式：
-- `"all"` (默认): 获取所有结果
-- `"oneTuple"`: 获取单条记录（元组格式）
-- `"one"`: 获取单个值（第一个字段的值）
+- "all" (默认): 获取所有结果
+- "oneTuple": 获取单条记录。默认返回元组格式，也支持通过 output_format="dict" 且 data_label 不为空时，返回字典格式（如 {'id': 1, 'name': '张三'}）
+- "one": 获取单个值（第一个字段的值）
 
 #### 2. output_format - 输出格式
 仅当 `fetch_mode="all"` 时有效：
-- `""` (默认): 返回原始元组列表
-- `"list_1"`: 返回扁平化的列表（提取每行的第一个字段）
-- `"df"`: 返回 pandas DataFrame
-- `"df_dict"`: 返回字典列表（DataFrame转dict）
+- `""` (默认): 返回原始元组列表（fetch_mode="all"），或元组（fetch_mode="oneTuple"）
+- `"list_1"`: 返回扁平化的列表（提取每行的第一个字段，仅 fetch_mode="all" 有效）
+- `"df"`: 返回 pandas DataFrame（仅 fetch_mode="all" 有效）
+- `"df_dict"`: 返回字典列表（DataFrame转dict，仅 fetch_mode="all" 有效）
+- `"dict"`: 仅在 fetch_mode="oneTuple" 且 data_label 不为空时有效，返回字典，如 {'id': 1, 'name': '张三'}
 
 #### 3. data_label - 自定义列名
 用于 DataFrame 的列名或字典的键名重命名：
@@ -65,7 +66,14 @@ select(
 - 类型: `bool`
 - 默认值: `False`
 - 如果为 `True`，返回 `(数据, 总数)` 元组
+    "fetch_mode": "oneTuple"  # 获取单条记录（元组格式）
+}
 
+# 示例2.1: 获取单条记录并转为字典
+fetch_config = {
+    "fetch_mode": "oneTuple",
+    "output_format": "dict",
+    "data_label": ["id", "name", "email"]
 #### 5. order_by & limit
 - `order_by`: 排序子句，优先级高于外层参数
 - `limit`: 限制记录数，优先级高于外层参数
