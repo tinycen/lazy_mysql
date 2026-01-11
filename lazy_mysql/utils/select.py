@@ -23,7 +23,7 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
            - "oneTuple": 获取单条记录（元组格式）
            - "one": 获取单个值（第一个字段的值）
            
-        2. output_format (str): 输出格式，仅当fetch_mode="all"时有效
+        2. output_format (str): 输出格式，仅当fetch_mode="all" 或 fetch_mode = "oneTuple" 时有效
            - "" (默认): 返回原始元组列表
            - "list_1": 返回扁平化的列表（提取每行的第一个字段）
            - "df": 返回pandas DataFrame
@@ -133,10 +133,7 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
         fetch_config = {}
 
     fetch_mode = fetch_config.get("fetch_mode", "all")
-    if fetch_mode != "all" :
-        output_format = ""
-    else :
-        output_format = fetch_config.get("output_format", "")
+    output_format = fetch_config.get("output_format", "")
     show_count = fetch_config.get("show_count", False)
     
     # 获取data_label参数

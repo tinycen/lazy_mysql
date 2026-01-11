@@ -315,7 +315,7 @@ class SQLExecutor :
                - "oneTuple": 获取单条记录（元组格式）
                - "one": 获取单个值（第一个字段的值）
                
-            2. output_format (str): 输出格式，仅当fetch_mode="all"时有效
+            2. output_format (str): 输出格式，仅当fetch_mode="all" 或 fetch_mode = "oneTuple" 时有效
                - "" (默认): 返回原始元组列表
                - "list_1": 返回扁平化的列表（提取每行的第一个字段）
                - "df": 返回pandas DataFrame
