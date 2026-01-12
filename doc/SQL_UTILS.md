@@ -42,7 +42,7 @@ def add_limit(column, value, column_alias="", add_and=True, operator="=")
 
 #### 基本用法
 ```python
-from lazy_mysql.tools.sql_utils import add_limit
+from lazy_mysql import add_limit
 
 # 基本等值比较
 result = add_limit('status', 'active')
