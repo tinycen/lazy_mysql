@@ -132,6 +132,9 @@ executor.close()
 - [UPDATE Operations](doc/UPDATE.md) - Conditional updates, batch updates, SQL expressions, performance optimization
 - [DELETE Operations](doc/DELETE.md) - Safe deletion, condition combinations, error handling, debugging tips
 
+### 🛠️ SQL Utility Functions
+- [SQL Utility Functions](doc/SQL_UTILS.md) - add_limit condition building, string concatenation, operator support
+
 ## 🔧 Environment Requirements
 
 - **Python**: 3.7+

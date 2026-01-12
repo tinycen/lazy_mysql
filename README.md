@@ -134,6 +134,9 @@ executor.close()
 - [UPDATE 更新操作](doc/UPDATE.md) - 条件更新、批量更新、SQL表达式、性能优化
 - [DELETE 删除操作](doc/DELETE.md) - 安全删除、条件组合、错误处理、调试技巧
 
+### 🛠️ SQL工具函数
+- [SQL工具函数](doc/SQL_UTILS.md) - add_limit条件构建、字符串拼接、运算符支持
+
 
 ## 🔧 环境要求
 
