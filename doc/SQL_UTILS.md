@@ -110,6 +110,40 @@ result = add_limit('create_time', '2023-01-01', 'u', operator='>=')
 3. **数据类型**: 所有值都会被转换为字符串并添加引号，数字类型也不例外
 4. **大小写敏感**: 运算符不区分大小写，`LIKE` 和 `like` 效果相同
 
+## load_sql - 载入SQL文件
+
+`load_sql` 函数用于从文件中读取SQL语句，支持UTF-8编码。
+
+### 函数签名
+```python
+def load_sql(sql_path)
+```
+
+### 参数说明
+
+| 参数名 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| sql_path | str | 必填 | SQL文件路径 |
+
+### 返回值
+- **str**: 读取的SQL内容（去除首尾空白字符）
+
+### 使用示例
+
+```python
+from lazy_mysql import load_sql
+
+# 从文件载入SQL
+sql_content = load_sql('queries/select_users.sql')
+print(sql_content)
+```
+
+### 注意事项
+
+1. **文件编码**: 默认使用UTF-8编码读取文件
+2. **空白处理**: 返回的SQL内容会自动去除首尾空白字符
+3. **错误处理**: 如果文件不存在或无法读取，会抛出相应的文件操作异常
+
 ### 相关函数
 - [build_where_clause](SELECT.md#build_where_clause) - 构建完整的WHERE子句
 - [NDayInterval](SELECT.md#ndayinterval) - 日期区间处理
