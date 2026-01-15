@@ -10,6 +10,20 @@ class NDayInterval:
         return f"DATE_SUB(NOW(), INTERVAL {self.days} DAY)"
 
 
+def _validate_param_value(param_value, field_name):
+    """
+    校验参数值是否为numpy类型，如果是则抛出异常
+    
+    :param param_value: 需要校验的参数值
+    :param field_name: 参数字段名，用于错误信息
+    :raises: TypeError - 当参数值为numpy类型时
+    """
+    # 检查是否为numpy类型
+    param_type = type(param_value).__name__
+    if param_type.startswith('numpy'):
+        raise TypeError(f"字段 '{field_name}' 的参数值类型为 {param_type}，numpy类型数据无法直接写入数据库，请先转换为Python原生类型")
+
+
 def build_where_clause( conditions ) :
     """
     构造WHERE子句和对应的参数列表
@@ -28,6 +42,7 @@ def build_where_clause( conditions ) :
         - params: list - 对应的参数值列表，用于防止SQL注入
     
     :raises: ValueError - 当元组格式长度不为2时
+    :raises: TypeError - 当参数值为numpy类型时
     
     :example:
         >>> conditions = {'name': '张三', 'age': ('>', 18)}
@@ -60,13 +75,20 @@ def build_where_clause( conditions ) :
                 clauses.append(f"{field} {operator} {val}")
             # 处理IN和NOT IN运算符的特殊情况
             elif operator.upper() in ('IN', 'NOT IN') and isinstance(val, (list, tuple)):
+                # 校验列表/元组中的每个元素
+                for item in val:
+                    _validate_param_value(item, field)
                 placeholders = ', '.join(['%s'] * len(val))
                 clauses.append(f"{field} {operator.upper()} ({placeholders})")
                 params.extend(val)
             else:
+                # 校验参数值
+                _validate_param_value(val, field)
                 clauses.append(f"{field} {operator} %s")
                 params.append(val)
         else :
+            # 校验参数值
+            _validate_param_value(value, field)
             clauses.append(f"{field} = %s")
             params.append(value)
             
