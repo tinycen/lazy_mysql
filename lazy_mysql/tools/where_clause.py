@@ -1,3 +1,5 @@
+import json
+
 class NDayInterval:
     """
     表示返回N天前的日期，可用于SQL中与 ">=" 运算符配合，筛选最近N天的数据。
@@ -12,16 +14,27 @@ class NDayInterval:
 
 def _validate_param_value(param_value, field_name):
     """
-    校验参数值是否为numpy类型，如果是则抛出异常
+    校验参数值是否为numpy类型，如果是则抛出异常；
+    如果是Dict类型，自动执行json.dumps转换为字符串
     
     :param param_value: 需要校验的参数值
     :param field_name: 参数字段名，用于错误信息
-    :raises: TypeError - 当参数值为numpy类型时
+    :return: 处理后的参数值
+    :raises: TypeError - 当参数值为numpy类型时，或Dict类型json.dumps失败时
     """
     # 检查是否为numpy类型
     param_type = type(param_value).__name__
     if param_type.startswith('numpy'):
-        raise TypeError(f"字段 '{field_name}' 的参数值类型为 {param_type}，numpy类型数据无法直接写入数据库，请先转换为Python原生类型")
+        raise TypeError(f"字段 '{field_name}' 的参数值类型为 {param_type}，numpy类型数据无法直接写入数据库，请先转换")
+    
+    # 如果是Dict类型，自动执行json.dumps
+    if isinstance(param_value, dict):
+        try:
+            return json.dumps(param_value, ensure_ascii=False)
+        except (TypeError, ValueError) as e:
+            raise TypeError(f"字段 '{field_name}' 的Dict类型参数值：{param_value} 无法转换为JSON字符串: {str(e)}")
+    
+    return param_value
 
 
 def build_where_clause( conditions ) :
@@ -76,21 +89,24 @@ def build_where_clause( conditions ) :
             # 处理IN和NOT IN运算符的特殊情况
             elif operator.upper() in ('IN', 'NOT IN') and isinstance(val, (list, tuple)):
                 # 校验列表/元组中的每个元素
+                validated_val = []
                 for item in val:
-                    _validate_param_value(item, field)
+                    validated_item = _validate_param_value(item, field)
+                    validated_val.append(validated_item)
+                val = validated_val
                 placeholders = ', '.join(['%s'] * len(val))
                 clauses.append(f"{field} {operator.upper()} ({placeholders})")
                 params.extend(val)
             else:
                 # 校验参数值
-                _validate_param_value(val, field)
+                validated_val = _validate_param_value(val, field)
                 clauses.append(f"{field} {operator} %s")
-                params.append(val)
+                params.append(validated_val)
         else :
             # 校验参数值
-            _validate_param_value(value, field)
+            validated_value = _validate_param_value(value, field)
             clauses.append(f"{field} = %s")
-            params.append(value)
+            params.append(validated_value)
             
     where_clause = ' AND '.join(clauses)
     return where_clause , params
