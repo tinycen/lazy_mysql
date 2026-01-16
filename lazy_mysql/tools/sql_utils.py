@@ -22,7 +22,7 @@ def add_limit( column , value , column_alias = "" , add_and = True , operator = 
         >>> add_limit('status', 'active')
         "AND status = 'active'"
         >>> add_limit('age', 18, 'u', operator='>=')
-        "AND u.age >= '18'"
+        "AND u.age >= 18"
         >>> add_limit('name', '%张%', operator='LIKE')
         "AND name LIKE '%张%'"
         >>> add_limit('type', ['admin', 'user'], operator='IN')
@@ -35,10 +35,14 @@ def add_limit( column , value , column_alias = "" , add_and = True , operator = 
     
     # 处理IN/NOT IN运算符的特殊情况
     if operator.upper() in ('IN', 'NOT IN') and isinstance(value, (list, tuple)):
-        value_str = ', '.join([f"'{v}'" for v in value])
+        value_str = ', '.join([str(v) if isinstance(v, (int, float)) else f"'{v}'" for v in value])
         condition = f"{column_alias}{column} {operator.upper()} ({value_str})"
     else:
-        condition = f"{column_alias}{column} {operator.upper()} '{value}'"
+        # 处理数字类型，不需要加单引号
+        if isinstance(value, (int, float)):
+            condition = f"{column_alias}{column} {operator.upper()} {value}"
+        else:
+            condition = f"{column_alias}{column} {operator.upper()} '{value}'"
     
     if add_and : 
         return f"AND {condition}" 
