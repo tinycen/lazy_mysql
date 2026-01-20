@@ -202,8 +202,8 @@ def _build_set_clause_complex(case_clauses):
     
     参数顺序说明：
     对于 SQL: status = CASE WHEN id = %s AND type = %s THEN %s WHEN id > %s THEN %s END
-    参数顺序为: [value1, where_param1_1, where_param1_2, value2, where_param2_1, ...]
-    即：先value，再where_params
+    参数顺序为: [where_param1_1, where_param1_2, value1, where_param2_1, value2, ...]
+    即：先where_params，再value
     """
     set_parts = []
     params = []
@@ -215,8 +215,8 @@ def _build_set_clause_complex(case_clauses):
         case_sql = f"{field} = CASE"
         for where_clause, where_params, value in cases:
             case_sql += f" WHEN {where_clause} THEN %s"
-            params.append(value)
             params.extend(where_params)
+            params.append(value)
         case_sql += f" ELSE {field} END"
         set_parts.append(case_sql)
     
