@@ -9,6 +9,8 @@ class NDayInterval:
     def __init__(self, days):
         self.days = days
     def __str__(self):
+        if self.days == 0:
+            return "NOW()"
         return f"DATE_SUB(NOW(), INTERVAL {self.days} DAY)"
 
 
