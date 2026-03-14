@@ -369,3 +369,83 @@ WHERE (id = %s AND type = %s) OR (id = %s);
 2. **字段一致性**：所有 `fields` 中的字段会被统一处理
 3. **数据类型**：列表和字典类型会自动转换为JSON字符串
 4. **性能考虑**：适合中等批量更新（100-10000条记录）
+
+## 合并更新列表 (merge_update_lists)
+
+`merge_update_lists` 是一个实用工具函数，用于合并多个 `update_list`，根据相同的 `conditions` 自动合并 `fields`。
+
+### 函数签名
+
+```python
+merge_update_lists(*update_lists, on_conflict='error')
+```
+
+### 参数说明
+
+| 参数名 | 类型 | 必填 | 默认值 | 说明 |
+|--------|------|------|--------|------|
+| `*update_lists` | list | 是 | - | 一个或多个 update_list |
+| `on_conflict` | str | 否 | `'error'` | 冲突处理策略：`'error'` 抛出异常、`'skip'` 保留先出现的值、`'override'` 使用后出现的值覆盖 |
+
+### 合并规则
+
+1. 如果 `conditions` 完全相同（无论是否在同一个 `update_list` 内），则合并 `fields`
+2. 如果 `fields` 中有重复字段但值相同，跳过该字段
+3. 如果 `fields` 中有重复字段但值不同，根据 `on_conflict` 参数处理
+
+### 使用示例
+
+#### 基础合并
+
+```python
+from lazy_mysql.utils.update import merge_update_lists
+
+list1 = [{'fields': {'name': '张三'}, 'conditions': {'id': 1}}]
+list2 = [{'fields': {'age': 25}, 'conditions': {'id': 1}}]
+
+merged = merge_update_lists(list1, list2)
+# 结果: [{'fields': {'name': '张三', 'age': 25}, 'conditions': {'id': 1}}]
+```
+
+#### 配合 batch_update 使用
+
+```python
+from lazy_mysql.utils.update import merge_update_lists
+
+# 不同来源的更新数据
+updates_from_api = [
+    {'fields': {'name': '张三'}, 'conditions': {'id': 1}},
+    {'fields': {'name': '李四'}, 'conditions': {'id': 2}}
+]
+
+updates_from_cache = [
+    {'fields': {'age': 25}, 'conditions': {'id': 1}},
+    {'fields': {'age': 30}, 'conditions': {'id': 2}}
+]
+
+# 合并后批量更新
+merged = merge_update_lists(updates_from_api, updates_from_cache)
+executor.batch_update('users', merged, commit=True)
+```
+
+#### 冲突处理
+
+```python
+list1 = [{'fields': {'name': '张三'}, 'conditions': {'id': 1}}]
+list2 = [{'fields': {'name': '李四'}, 'conditions': {'id': 1}}]
+
+# 默认行为：抛出异常
+merge_update_lists(list1, list2)  # ValueError: 字段 'name' 存在冲突
+
+# 跳过冲突：保留先出现的值
+merge_update_lists(list1, list2, on_conflict='skip')
+# 结果: [{'fields': {'name': '张三'}, 'conditions': {'id': 1}}]
+
+# 覆盖冲突：使用后出现的值
+merge_update_lists(list1, list2, on_conflict='override')
+# 结果: [{'fields': {'name': '李四'}, 'conditions': {'id': 1}}]
+```
+
+### 返回值
+
+返回合并后的 `update_list`，其中 `fields` 和 `conditions` 均为深拷贝，不影响原始数据。
