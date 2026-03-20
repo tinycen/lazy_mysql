@@ -68,14 +68,15 @@ update(
 
 #### conditions 条件格式
 
-**方式1：等值条件（推荐）**
-```python
-{'status': 'active', 'department': 'IT'}
-# 生成: WHERE status = %s AND department = %s
-```
+`conditions` 参数用于指定更新条件，支持等值条件、比较运算符、空值判断等多种格式。
 
-**方式2：自定义运算符（元组格式）**
+详细说明请参考 [CONDITIONS.md](CONDITIONS.md)。
+
 ```python
+# 等值条件
+{'status': 'active', 'department': 'IT'}
+
+# 比较运算符
 {
     'age': ('>', 18),
     'name': ('LIKE', '%张%'),
@@ -83,22 +84,6 @@ update(
     'department': ('IN', ['IT', 'HR', 'Finance'])
 }
 ```
-
-### 完整运算符支持
-
-| 运算符 | 示例 | 生成SQL | 说明 |
-|--------|------|---------|------|
-| `=` | `{'status': 'active'}` | `status = %s` | 精确匹配（默认） |
-| `!=`/`<> ` | `{'status': ('!=', 'deleted')}` | `status != %s` | 不等于 |
-| `>` | `{'score': ('>', 90)}` | `score > %s` | 大于 |
-| `>=` | `{'age': ('>=', 18)}` | `age >= %s` | 大于等于 |
-| `<` | `{'price': ('<', 100)}` | `price < %s` | 小于 |
-| `<=` | `{'stock': ('<=', 10)}` | `stock <= %s` | 小于等于 |
-| `LIKE` | `{'title': ('LIKE', '%Python%')}` | `title LIKE %s` | 模糊匹配 |
-| `NOT LIKE` | `{'title': ('NOT LIKE', '%Test%')}` | `title NOT LIKE %s` | 反向模糊匹配 |
-| `IN` | `{'category': ('IN', ['tech', 'science'])}` | `category IN (%s, %s)` | 包含列表 |
-| `NOT IN` | `{'status': ('NOT IN', ['archived', 'deleted'])}` | `status NOT IN (%s, %s)` | 不包含列表 |
-| `BETWEEN` | `{'score': ('BETWEEN', [80, 100])}` | `score BETWEEN %s AND %s` | 范围查询 |
 
 ## 基础UPDATE语法
 

@@ -143,96 +143,41 @@ result = executor.select(
 )
 ```
 
-## WHERE条件系统
+## WHERE 条件
 
-### 基础条件格式
+`conditions` 参数用于过滤数据，支持等值条件、比较运算符、空值判断等多种格式。
 
-支持三种条件定义方式：
+详细说明请参考 [CONDITIONS.md](CONDITIONS.md)。
+
+### 快速示例
 
 ```python
-# 方式1：等值条件（推荐）
-conditions = {
-    'status': 'active',
-    'age': 25
-}
+# 等值条件
+conditions = {'status': 'active', 'age': 25}
 
-# 方式2：自定义运算符（元组格式）
-conditions = {
-    'age': ('>', 18),
-    'name': ('LIKE', '%John%'),
-    'status': ('IN', ['active', 'pending'])
-}
+# 比较运算符
+conditions = {'age': ('>', 18), 'score': ('>=', 90)}
 
-# 方式3：最近N天区间（NDayInterval）
+# 模糊查询
+conditions = {'name': ('LIKE', '%John%')}
+
+# 列表包含
+conditions = {'status': ('IN', ['active', 'pending'])}
+
+# 空值判断
+conditions = {'deleted_at': 'NULL'}
+
+# 最近N天
 from lazy_mysql.tools.where_clause import NDayInterval
-conditions = {
-    'order_dateTime': ('>=', NDayInterval(7))  # 最近7天
-}
-```
+conditions = {'created_at': ('>=', NDayInterval(7))}
 
-### 完整运算符支持
-
-| 运算符 | 示例 | 说明 |
-|--------|------|------|
-| `=` | `{'status': 'active'}` | 精确匹配 |
-| `!=`/`\<>` | `{'status': ('!=', 'deleted')}` | 不等于 |
-| `>` | `{'score': ('>', 90)}` | 大于 |
-| `>=` | `{'age': ('>=', 18)}` | 大于等于 |
-| `<` | `{'price': ('<', 100)}` | 小于 |
-| `<=` | `{'stock': ('<=', 10)}` | 小于等于 |
-| `LIKE` | `{'title': ('LIKE', '%Python%')}` | 模糊匹配 |
-| `NOT LIKE` | `{'title': ('NOT LIKE', '%Test%')}` | 反向模糊匹配 |
-| `IS NULL` | `{'deleted_at': 'NULL'}` | 为空判断 |
-| `IS NOT NULL` | `{'email': 'NOT NULL'}` | 非空判断 |
-| `NDayInterval` | `{'time': ('>=', NDayInterval(7))}` | 最近N天日期区间 |
-| `IN` | `{'category': ('IN', ['tech', 'science'])}` | 包含列表 |
-| `NOT IN` | `{'status': ('NOT IN', ['archived', 'deleted'])}` | 不包含列表 |
-
-### 空值判断 (IS NULL / IS NOT NULL)
-
-```python
-# 查询未删除的用户（软删除场景）
-active_users = executor.select(
-    'users',
-    ['id', 'username', 'email'],
-    conditions={'deleted_at': 'NULL'}
-)
-
-# 查询已填写邮箱的用户
-users_with_email = executor.select(
-    'users',
-    ['id', 'username', 'email'],
-    conditions={'email': 'NOT NULL'}
-)
-
-# 组合条件：未删除且有邮箱的用户
-conditions = {
-    'deleted_at': 'NULL',
-    'email': 'NOT NULL',
-    'status': 'active'
-}
-valid_users = executor.select('users', ['id', 'username', 'email'], conditions=conditions)
-```
-
-> **注意**：使用 `'NULL'` 和 `'NOT NULL'` 字符串格式，会自动转换为 SQL 的 `IS NULL` 和 `IS NOT NULL`
-
-### 复杂条件组合
-
-```python
-# 多条件AND组合
+# 组合条件
 conditions = {
     'status': 'active',
     'created_at': ('>=', '2024-01-01'),
-    'score': ('BETWEEN', [80, 100])
+    'deleted_at': 'NULL'
 }
-
-result = executor.select(
-    'users',
-    ['id', 'username', 'score'],
-    conditions=conditions,
-    order_by='score DESC',
-    limit=50
-)
+result = executor.select('users', ['id', 'name'], conditions=conditions)
 ```
 
 ## 排序和限制结果

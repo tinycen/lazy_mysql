@@ -2,7 +2,7 @@
 
 [![zread](icon/zread-badge.svg)](https://zread.ai/tinycen/lazy_mysql)
 
-**[简体中文](README.md)** | **[English](README.en.md)**
+**[简体中文](README.md)**
 
 一个轻量级的Python库，为MySQL数据库操作提供简洁优雅的解决方案。
 
@@ -28,9 +28,9 @@ pip install --upgrade lazy-mysql
 ### 1. 数据库连接初始化
 
 ```python
-from lazy_mysql.executor import SQLExecutor
-from lazy_mysql.sql_config import MySQLConfig
-from lazy_mysql.tools.where_clause import NDayInterval
+from lazy_mysql import SQLExecutor
+from lazy_mysql import MySQLConfig
+from lazy_mysql import NDayInterval
 
 
 # 创建数据库配置
@@ -61,7 +61,6 @@ active_users = executor.select(
 )
 
 # 复杂条件查询
-
 results = executor.select(
     'users',
     ['id', 'name', 'score'],
@@ -118,13 +117,17 @@ executor.delete('users', conditions={'status': 'inactive', 'last_login': ('<', '
 ### 5. 使用完毕后关闭连接
 
 ```python
+# 直接关闭数据库连接
 executor.close()
+# 提交数据并关闭连接
+executor.commit_close()
 ```
 
 ### 📚 详细文档
 
 ### 🔗 连接与配置
 - [数据库连接初始化](doc/CONNECTION.md) - 连接配置、错误处理、重试机制、最佳实践
+- [WHERE 条件构造](doc/CONDITIONS.md) - 等值条件、比较运算符、空值判断、日期筛选
 
 ### 🔍 查询操作
 - [SELECT 查询操作](doc/SELECT.md) - 智能查询构建、复杂条件、多表关联、结果格式化

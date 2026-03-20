@@ -27,87 +27,42 @@ delete(
 | `commit` | bool | 否 | 是否自动提交事务，默认False |
 | `self_close` | bool | 否 | 是否自动关闭数据库连接，默认False |
 
-### WHERE条件系统
+### WHERE 条件
 
-#### 1. 基础等值条件
+`conditions` 参数用于指定删除条件，支持等值条件、比较运算符、空值判断等多种格式。
 
-最简单的条件格式，直接指定字段和值的精确匹配：
+详细说明请参考 [CONDITIONS.md](CONDITIONS.md)。
 
-```python
-# 删除ID为1001的用户
-executor.delete(
-    table_name='users',
-    conditions={'id': 1001},
-    commit=True
-)
-# 生成SQL: DELETE FROM users WHERE id = %s
-
-# 删除特定邮箱的用户
-executor.delete(
-    table_name='users',
-    conditions={'email': 'spam@example.com', 'status': 'unverified'},
-    commit=True
-)
-# 生成SQL: DELETE FROM users WHERE email = %s AND status = %s
-```
-
-#### 2. 高级比较运算符
-
-支持完整的SQL比较运算符：
-
-| 运算符 | 示例 | 说明 |
-|--------|------|------|
-| `=` | `{'status': 'active'}` | 精确匹配 |
-| `!=`/`<>` | `{'status': ('!=', 'deleted')}` | 不等于 |
-| `>` | `{'age': ('>', 18)}` | 大于 |
-| `>=` | `{'score': ('>=', 90)}` | 大于等于 |
-| `<` | `{'created_at': ('<', '2024-01-01')}` | 小于 |
-| `<=` | `{'price': ('<=', 100)}` | 小于等于 |
-| `LIKE` | `{'title': ('LIKE', '%spam%')}` | 模糊匹配 |
-| `NOT LIKE` | `{'title': ('NOT LIKE', '%test%')}` | 反向模糊匹配 |
-| `IN` | `{'status': ('IN', ['inactive', 'suspended'])}` | 包含列表 |
-| `NOT IN` | `{'type': ('NOT IN', ['temp', 'draft'])}` | 不包含列表 |
-| `BETWEEN` | `{'score': ('BETWEEN', [80, 100])}` | 区间匹配 |
-
-#### 3. 复杂条件组合
-
-多个条件自动使用 AND 连接：
+#### 快速示例
 
 ```python
-# 删除长时间未登录的非活跃用户
+# 等值条件 - 删除指定ID用户
+executor.delete(table_name='users', conditions={'id': 1001}, commit=True)
+
+# 比较运算符 - 删除过期数据
+executor.delete(
+    table_name='logs',
+    conditions={'created_at': ('<', '2023-01-01')},
+    commit=True
+)
+
+# 列表包含 - 删除指定状态的用户
+executor.delete(
+    table_name='users',
+    conditions={'status': ('IN', ['inactive', 'suspended'])},
+    commit=True
+)
+
+# 复杂条件组合
 executor.delete(
     table_name='users',
     conditions={
         'last_login': ('<', '2023-01-01'),
         'status': ('IN', ['inactive', 'suspended']),
-        'login_attempts': ('>=', 5),
-        'email_verified': False
+        'login_attempts': ('>=', 5)
     },
     commit=True
 )
-# 生成SQL: DELETE FROM users WHERE last_login < %s AND status IN %s AND login_attempts >= %s AND email_verified = %s
-```
-
-#### 4. 子查询条件
-
-虽然 WHERE 条件主要是字段级别的，但可以通过构建复杂条件实现类似子查询的效果：
-
-```python
-# 删除没有任何订单的用户（通过关联查询确认）
-# 第1步：找出无订单的用户ID
-orphan_users = executor.select(
-    'users',
-    ['id'],
-    conditions={'id': ('NOT IN', executor.select('orders', ['user_id'], fetch_config={'fetch_mode': 'list_1'}))}
-)
-
-# 第2步：删除这些用户
-if orphan_users:
-    executor.delete(
-        table_name='users',
-        conditions={'id': ('IN', [u['id'] for u in orphan_users])},
-        commit=True
-    )
 ```
 
 ## 错误处理与调试
