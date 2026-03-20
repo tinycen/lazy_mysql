@@ -182,9 +182,39 @@ conditions = {
 | `<=` | `{'stock': ('<=', 10)}` | 小于等于 |
 | `LIKE` | `{'title': ('LIKE', '%Python%')}` | 模糊匹配 |
 | `NOT LIKE` | `{'title': ('NOT LIKE', '%Test%')}` | 反向模糊匹配 |
+| `IS NULL` | `{'deleted_at': 'NULL'}` | 为空判断 |
+| `IS NOT NULL` | `{'email': 'NOT NULL'}` | 非空判断 |
 | `NDayInterval` | `{'time': ('>=', NDayInterval(7))}` | 最近N天日期区间 |
 | `IN` | `{'category': ('IN', ['tech', 'science'])}` | 包含列表 |
 | `NOT IN` | `{'status': ('NOT IN', ['archived', 'deleted'])}` | 不包含列表 |
+
+### 空值判断 (IS NULL / IS NOT NULL)
+
+```python
+# 查询未删除的用户（软删除场景）
+active_users = executor.select(
+    'users',
+    ['id', 'username', 'email'],
+    conditions={'deleted_at': 'NULL'}
+)
+
+# 查询已填写邮箱的用户
+users_with_email = executor.select(
+    'users',
+    ['id', 'username', 'email'],
+    conditions={'email': 'NOT NULL'}
+)
+
+# 组合条件：未删除且有邮箱的用户
+conditions = {
+    'deleted_at': 'NULL',
+    'email': 'NOT NULL',
+    'status': 'active'
+}
+valid_users = executor.select('users', ['id', 'username', 'email'], conditions=conditions)
+```
+
+> **注意**：使用 `'NULL'` 和 `'NOT NULL'` 字符串格式，会自动转换为 SQL 的 `IS NULL` 和 `IS NOT NULL`
 
 ### 复杂条件组合
 

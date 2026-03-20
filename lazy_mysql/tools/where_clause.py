@@ -42,23 +42,24 @@ def _validate_param_value(param_value, field_name):
 def build_where_clause( conditions ) :
     """
     构造WHERE子句和对应的参数列表
-    
+
     该方法用于根据提供的条件字典构建SQL的WHERE子句，支持两种条件格式：
     1. 简单值：自动生成等值比较条件
     2. 元组格式：自定义比较运算符和值
-    
+
         :param conditions: WHERE条件，格式为字典，每个键为字段名，每个值可以是:
         - 简单值: 默认使用 = 比较，如 {'name': '张三', 'age': 25}
+        - 字符串: 'NULL' 或 'NOT NULL'，如 {'deleted_at': 'NULL'}
         - 元组: (比较运算符, 值) 如 {'age': ('>', 18)}, {'name': ('LIKE', '%张%')}
         - 支持的比较运算符包括: =, !=, <>, >, >=, <, <=, LIKE, NOT LIKE, IN, NOT IN
-    
+
     :return: tuple - (where_clause, params)
         - where_clause: str - 构建好的WHERE子句（不包含WHERE关键字），条件之间用AND连接
         - params: list - 对应的参数值列表，用于防止SQL注入
-    
+
     :raises: ValueError - 当元组格式长度不为2时
     :raises: TypeError - 当参数值为numpy类型时
-    
+
     :example:
         >>> conditions = {'name': '张三', 'age': ('>', 18)}
         >>> clause, params = build_where_clause(conditions)
@@ -75,19 +76,25 @@ def build_where_clause( conditions ) :
         >>> clause, params = build_where_clause(conditions)
         >>> print(clause)  # 输出: status IN (%s, %s, %s) AND create_time >= %s
         >>> print(params)  # 输出: [1, 2, 3, '2023-01-01']
+
+        >>> conditions = {'deleted_at': 'NULL', 'email': 'NOT NULL'}
+        >>> clause, params = build_where_clause(conditions)
+        >>> print(clause)  # 输出: deleted_at IS NULL AND email IS NOT NULL
+        >>> print(params)  # 输出: []
     """
     if not conditions :
         return None , None
 
     clauses = []
     params = []
-    
+
     for field, value in conditions.items() :
         if isinstance(value, tuple) and len(value) == 2 :
             operator, val = value
             # 新增：如果val是NDayInterval，拼接SQL表达式
             if isinstance(val, NDayInterval):
                 clauses.append(f"{field} {operator} {val}")
+
             # 处理IN和NOT IN运算符的特殊情况
             elif operator.upper() in ('IN', 'NOT IN') and isinstance(val, (list, tuple)):
                 # 校验列表/元组中的每个元素
@@ -104,11 +111,16 @@ def build_where_clause( conditions ) :
                 validated_val = _validate_param_value(val, field)
                 clauses.append(f"{field} {operator} %s")
                 params.append(validated_val)
+
+        elif isinstance(value, str) and value.upper() in ('NULL', 'NOT NULL'):
+            # 处理简写格式：{'deleted_at': 'NULL'} -> deleted_at IS NULL
+            clauses.append(f"{field} IS {value.upper()}")
+            
         else :
             # 校验参数值
             validated_value = _validate_param_value(value, field)
             clauses.append(f"{field} = %s")
             params.append(validated_value)
-            
+
     where_clause = ' AND '.join(clauses)
     return where_clause , params
