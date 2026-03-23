@@ -28,8 +28,12 @@ def add_limit( column , value , column_alias = "" , add_and = True , operator = 
         >>> add_limit('type', ['admin', 'user'], operator='IN')
         "AND type IN ('admin', 'user')"
     """
-    if value in ("" , "all", "null") : 
+    if not value : 
         return "" 
+
+    if value in ("all", "null") : 
+        return "" 
+
     if column_alias != "" : 
         column_alias += "." 
     
