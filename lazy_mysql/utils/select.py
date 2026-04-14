@@ -1,7 +1,7 @@
 from ..tools.where_clause import build_where_clause
 
-def select(executor, table_names, fields=None, conditions=None, order_by=None, limit=None,
-           join_conditions=None, self_close=False, fetch_config=None):
+def select(executor, table_names, fields=None, conditions=None, order_by=None, limit:int|None=None,
+           distinct:bool=False, join_conditions=None, self_close:bool=False, fetch_config=None):
     """
     通用的SQL查询执行器方法，支持JOIN操作
     :param executor: SQLExecutor 实例
@@ -12,6 +12,7 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
         {'order_dateTime': ('>=', NDayInterval(7))}  # 最近7天
     :param order_by: ORDER BY子句
     :param limit: LIMIT子句
+    :param distinct: 是否使用DISTINCT去重，默认为False
     :param join_conditions: JOIN条件，格式为字典，如 {"join_type": "JOIN", "conditions": ["field1", "=", "field2"]}
     :param self_close: 是否自动关闭连接
     :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为
@@ -82,14 +83,17 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
     # 构造select子句
     select_clause = ', '.join(columns)
 
+    # 处理DISTINCT
+    distinct_clause = "DISTINCT " if distinct else ""
+
     # 处理表名
     if isinstance(table_names, str):
         # 单个表
-        sql = f"SELECT {select_clause} FROM {table_names}"
+        sql = f"SELECT {distinct_clause}{select_clause} FROM {table_names}"
     elif isinstance(table_names, list):
         # 多个表，需要JOIN
         main_table = table_names[0]
-        sql = f"SELECT {select_clause} FROM {main_table}"
+        sql = f"SELECT {distinct_clause}{select_clause} FROM {main_table}"
         
         # 添加JOIN子句
         if join_conditions:
