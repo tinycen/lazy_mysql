@@ -19,6 +19,7 @@ select(
     conditions,
     order_by=None,
     limit=None,
+    distinct=False,
     join_conditions=None,
     self_close=False,
     fetch_config=None
@@ -35,6 +36,7 @@ select(
 | `conditions` | dict | 是 | WHERE条件字典，支持多种运算符 |
 | `order_by` | str | 否 | 排序子句，如 `"id DESC"` |
 | `limit` | int | 否 | 限制返回记录数 |
+| `distinct` | bool | 否 | 是否使用DISTINCT去重，默认为False |
 | `join_conditions` | dict | 否 | JOIN配置，格式见下方说明 |
 | `self_close` | bool | 否 | 是否自动关闭数据库连接 |
 | `fetch_config` | dict | 否 | 结果格式化配置，详见下方说明 |
