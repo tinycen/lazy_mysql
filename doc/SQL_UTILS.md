@@ -14,16 +14,18 @@ def add_limit(column, value, column_alias="", add_and=True, operator="=")
 | 参数名 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | column | str | 必填 | 字段名 |
-| value | Any | 必填 | 字段值，如果为"", "all", "null"则返回空字符串 |
+| value | Any | 必填 | 字段值，如果为"", "all", "null", None, [], ()则返回空字符串 |
 | column_alias | str | "" | 表别名，可选参数 |
 | add_and | bool | True | 是否添加AND前缀 |
 | operator | str | "=" | 比较运算符，支持 =, !=, <>, >, >=, <, <=, LIKE, NOT LIKE, IN, NOT IN |
 
 ### 返回值
 - **str**: SQL条件语句片段
-- 如果value为"", "all", "null"，返回空字符串
+- 如果value为"", "all", "null", None, [], ()，返回空字符串
 
 ### 支持的运算符
+
+> **注意**：所有运算符不区分大小写，`LIKE` 和 `like` 效果相同。
 
 | 运算符 | 说明 | 示例 |
 |--------|------|------|
@@ -81,7 +83,7 @@ result = add_limit('status', ['deleted', 'banned'], operator='NOT IN')
 
 #### 特殊值处理
 ```python
-# 空值、all、null 返回空字符串
+# 空值、all、null、None、空列表、空元组 返回空字符串
 result = add_limit('status', '')
 # 输出: ""
 
@@ -90,6 +92,22 @@ result = add_limit('status', 'all')
 
 result = add_limit('status', 'null')
 # 输出: ""
+
+result = add_limit('status', None)
+# 输出: ""
+
+result = add_limit('status', [])
+# 输出: ""
+
+result = add_limit('status', ())
+# 输出: ""
+
+# 注意：数字 0 和 0.0 是有效值，会正常生成条件
+result = add_limit('age', 0)
+# 输出: "AND age = 0"
+
+result = add_limit('score', 0.0)
+# 输出: "AND score = 0.0"
 ```
 
 #### 组合条件
