@@ -1,4 +1,4 @@
-import json
+from ..value_converter import prepare_db_row
 from ...tools.where_clause import build_where_clause
 
 def update(executor, table_name, fields, conditions, commit=False, self_close=False):
@@ -13,13 +13,18 @@ def update(executor, table_name, fields, conditions, commit=False, self_close=Fa
     :param self_close: 是否自动关闭连接
     :return: None
     """
-    # 处理fields中的dict和list类型，自动执行json.dumps
-    processed_fields = fields.copy()
-    for field, value in processed_fields.items():
-        if isinstance(value, (dict, list)):
-            # sort_keys=False：确保不按照 key 的首字母排序。保持原有key的顺序。
-            # ensure_ascii=False：确保非 ASCII 字符（如中文、法文等）正确显示，不会被转义
-            processed_fields[field] = json.dumps(value, sort_keys=False, ensure_ascii=False)
+    if not fields:
+        if self_close:
+            executor.close()
+        raise ValueError("fields 不能为空")
+
+    if not conditions:
+        if self_close:
+            executor.close()
+        raise ValueError("conditions 不能为空，这会导致更新所有记录")
+
+    # 统一处理写入值，保持与 insert / batch_update 一致的类型转换规则
+    processed_fields = prepare_db_row(fields)
 
     # 构造SET子句
     set_clause = ', '.join([f"{field} = %s" for field in processed_fields.keys()])

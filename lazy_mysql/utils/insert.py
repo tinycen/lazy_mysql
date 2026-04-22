@@ -2,6 +2,8 @@ import os
 import csv
 import tempfile
 
+from .value_converter import prepare_db_row, prepare_db_value
+
 def insert(executor, table_name, fields, skip_duplicate=False, commit=False, self_close=False, temp_dir=None):
     """
     智能SQL插入执行器方法，根据数据量自动选择最优插入策略
@@ -26,8 +28,9 @@ def insert(executor, table_name, fields, skip_duplicate=False, commit=False, sel
     
     # 单条插入
     if isinstance(fields, dict):
-        sql = _build_insert_sql(table_name, fields.keys(), skip_duplicate)
-        values = tuple(fields.values())
+        field_names = list(fields.keys())
+        sql = _build_insert_sql(table_name, field_names, skip_duplicate)
+        values = _build_row_values(fields, field_names)
         executor.execute(sql, values, commit, self_close)
         return 1
         
@@ -42,8 +45,9 @@ def insert(executor, table_name, fields, skip_duplicate=False, commit=False, sel
         # 根据数据量选择最优策略
         if insert_num < 1000:
             # 小数据量：使用现有方案
-            sql = _build_insert_sql(table_name, fields[0].keys(), skip_duplicate)
-            values = [tuple(item.values()) for item in fields]
+            field_names = list(fields[0].keys())
+            sql = _build_insert_sql(table_name, field_names, skip_duplicate)
+            values = [_build_row_values(item, field_names) for item in fields]
             executor.execute(sql, values, commit, self_close)
             
         elif insert_num < 50000:
@@ -94,6 +98,23 @@ def _build_insert_sql(table_name, fields, skip_duplicate=False):
     return f'{insert_keyword} INTO {table_name} ({field_names}) VALUES {placeholders}'
 
 
+def _build_row_values(data, field_names):
+    processed_data = prepare_db_row(data)
+    return tuple(processed_data[field] for field in field_names)
+
+
+def _format_load_data_value(value):
+    normalized_value = prepare_db_value(value)
+
+    if normalized_value is None:
+        return r'\N'
+
+    if isinstance(normalized_value, bool):
+        return int(normalized_value)
+
+    return normalized_value
+
+
 def _upsert_single(executor, table_name, data, fields_update, commit, self_close):
     keys = list(data.keys())
     insert_sql = f"INSERT INTO {table_name} ({', '.join(keys)}) VALUES ({', '.join(['%s'] * len(keys))})"
@@ -108,7 +129,7 @@ def _upsert_single(executor, table_name, data, fields_update, commit, self_close
     
     update_sql = ', '.join([f"{k} = VALUES({k})" for k in update_keys])
     sql = f"{insert_sql} ON DUPLICATE KEY UPDATE {update_sql}"
-    executor.execute(sql, tuple(data.values()), commit=commit, self_close=self_close)
+    executor.execute(sql, _build_row_values(data, keys), commit=commit, self_close=self_close)
     return 1
 
 
@@ -126,7 +147,7 @@ def _upsert_batch(executor, table_name, data_list, fields_update, commit, self_c
     
     update_sql = ', '.join([f"{k} = VALUES({k})" for k in update_keys])
     sql = f"{insert_sql} ON DUPLICATE KEY UPDATE {update_sql}"
-    values = [tuple(d.values()) for d in data_list]
+    values = [_build_row_values(d, keys) for d in data_list]
     executor.execute(sql, values, commit=commit, self_close=self_close)
     return len(data_list)
 
@@ -180,22 +201,21 @@ def _bulk_insert_load_data(executor, table_name, fields, skip_duplicate=False,
                 
                 # 写入数据，确保字段顺序一致
                 for row in batch_data:
-                    csv_writer.writerow([str(row[field]) for field in field_names])
+                    csv_writer.writerow([_format_load_data_value(row[field]) for field in field_names])
                 
                 tmp_file_path = tmp_file.name
             
             # 构造LOAD DATA语句
+            load_into_clause = "IGNORE INTO TABLE" if skip_duplicate else "INTO TABLE"
             load_sql = f"""
             LOAD DATA LOCAL INFILE '{tmp_file_path.replace(os.sep, '/')}'
-            INTO TABLE {table_name}
+            {load_into_clause} {table_name}
             FIELDS TERMINATED BY ','
             OPTIONALLY ENCLOSED BY '"'
             LINES TERMINATED BY '\n'
             ({fields_str})
             """
-            
-            if skip_duplicate:
-                load_sql += " IGNORE"
+
             
             # 执行批量插入 - executor.execute已处理异常和提交
             executor.execute(load_sql, commit=commit)
@@ -229,7 +249,8 @@ def _executemany_optimized(executor, table_name, fields, skip_duplicate=False,
         return 0
     
     total_records = len(fields)
-    sql = _build_insert_sql(table_name, fields[0].keys(), skip_duplicate)
+    field_names = list(fields[0].keys())
+    sql = _build_insert_sql(table_name, field_names, skip_duplicate)
     inserted_count = 0
     total_batches = (total_records - 1) // batch_size + 1
     
@@ -243,7 +264,7 @@ def _executemany_optimized(executor, table_name, fields, skip_duplicate=False,
             
             print(f"[executemany] Processing batch {batch_num}/{total_batches} ({batch_start}-{batch_end-1})...")
             
-            values = [tuple(item.values()) for item in batch_data]
+            values = [_build_row_values(item, field_names) for item in batch_data]
             
             # 执行批量插入 - executor.execute已处理异常和提交
             executor.execute(sql, values, commit=commit)

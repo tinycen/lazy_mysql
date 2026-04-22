@@ -1,5 +1,5 @@
-import json
 import pandas as pd
+from ..value_converter import prepare_db_value
 from ...tools.where_clause import build_where_clause
 
 
@@ -44,6 +44,9 @@ def batch_update(executor, table_name, update_list, commit=False, self_close=Fal
     for item in update_list:
         if 'fields' not in item or 'conditions' not in item:
             raise ValueError("update_list 中每个元素必须包含 'fields' 和 'conditions'")
+
+        if not item['fields']:
+            raise ValueError("fields 不能为空")
         
         # 防御：检查 conditions 不能为空或None
         if not item['conditions']:
@@ -95,14 +98,12 @@ def _check_simple_case(df_conditions):
 
 def _process_update_value(value):
     """
-    处理更新值，将dict和list类型转换为JSON字符串
+    统一处理更新值，复用公共写入类型转换逻辑
     
     :param value: 原始值
     :return: 处理后的值
     """
-    if isinstance(value, (dict, list)):
-        return json.dumps(value)
-    return value
+    return prepare_db_value(value)
 
 
 def _build_case_clauses_simple(update_list, all_fields, key_field):
