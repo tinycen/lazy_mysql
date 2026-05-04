@@ -1,4 +1,5 @@
 from .utils.connect import connection
+from .dataclasses.fetch_config import FetchConfig
 
 # 定义需要重试的错误信息常量
 RETRYABLE_ERRORS = [
@@ -292,9 +293,9 @@ class SQLExecutor :
 
 
     # 选择数据
-    def select( self , table_names , fields = None , conditions = None, order_by = None , limit:int|None=None, 
-                distinct:bool=False , join_conditions = None , 
-                self_close:bool=False , fetch_config = None ) :
+    def select( self , table_names , fields = None , conditions = None, order_by = None , limit:int|None=None,
+                distinct:bool=False , join_conditions = None ,
+                self_close:bool=False , fetch_config: FetchConfig | dict | None = None ) :
         """
         通用的SQL查询执行器方法，支持JOIN操作
         :param table_names: 表名，可以是字符串或列表
@@ -307,31 +308,28 @@ class SQLExecutor :
         :param distinct: 是否使用DISTINCT去重，默认为False
         :param join_conditions: JOIN条件，格式为字典，如 {"join_type": "JOIN", "conditions": ["field1", "=", "field2"]}
         :param self_close: 是否自动关闭连接
-        :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为
-            
-            fetch_config是一个字典，包含以下可选配置项：
-            
+        :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为。
+            可以是 FetchConfig 模型实例或字典（兼容旧方式）。
+
+            fetch_config包含以下可选配置项：
+
             1. fetch_mode (str): 获取模式，控制返回数据的数量
                - "all" (默认): 获取所有结果
                - "oneTuple": 获取单条记录（元组格式）
                - "one": 获取单个值（第一个字段的值）
-               
+
             2. output_format (str): 输出格式，仅当fetch_mode="all" 或 fetch_mode = "oneTuple" 时有效
                - "" (默认): 返回原始元组列表
                - "list_1": 返回扁平化的列表（提取每行的第一个字段）
                - "df": 返回pandas DataFrame
                - "df_dict": 返回字典列表（DataFrame转dict）
-               
+
             3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
-                    如果为None，系统会根据fields自动生成
-               
+               如果为None，系统会根据fields自动生成
+
             4. show_count (bool): 是否显示查询结果数量，默认为False
-               
-            5. order_by (str): ORDER BY子句，如 "id DESC" 或 "name ASC"
-            
-            6. limit (int): LIMIT子句，限制返回记录数
-            
-            示例：
+
+            示例（使用字典，兼容旧方式）：
                 # 获取所有记录并返回DataFrame
                 fetch_config = {
                     "fetch_mode": "all",
@@ -339,24 +337,17 @@ class SQLExecutor :
                     "data_label": ["id", "name", "email"],
                     "show_count": True
                 }
-                
-                # 获取单条记录
-                fetch_config = {
-                    "fetch_mode": "oneTuple"
-                }
-                
-                # 获取单个值
-                fetch_config = {
-                    "fetch_mode": "one"
-                }
-                
-                # 获取所有记录并返回字典列表
-                fetch_config = {
-                    "fetch_mode": "all",
-                    "output_format": "df_dict",
-                    "order_by": "created_at DESC",
-                    "limit": 100
-                }
+
+            示例（使用 FetchConfig 模型）：
+                from lazy_mysql.dataclasses import FetchConfig
+
+                # 获取所有记录并返回DataFrame
+                fetch_config = FetchConfig(
+                    fetch_mode="all",
+                    output_format="df",
+                    data_label=["id", "name", "email"],
+                    show_count=True
+                )
         :return: 查询结果，格式根据fetch_config配置而定
         """
         if fields is None:
@@ -486,31 +477,32 @@ class SQLExecutor :
         return { "success" : success , "result" : result , "message" : message }
 
     # 支持复杂查询的执行方法
-    def execute_query(self, sql, params=None, fetch_config=None, self_close=False):
+    def execute_query(self, sql, params=None, fetch_config: FetchConfig | dict | None = None, self_close=False):
         """
         执行自定义SQL查询
         :param sql: SQL语句
         :param params: 参数
-        :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为
-            
-            fetch_config是一个字典，包含以下可选配置项：
-            
+        :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为。
+            可以是 FetchConfig 模型实例或字典（兼容旧方式）。
+
+            fetch_config包含以下可选配置项：
+
             1. fetch_mode (str): 获取模式，控制返回数据的数量
                - "all" (默认): 获取所有结果
                - "oneTuple": 获取单条记录（元组格式）
                - "one": 获取单个值（第一个字段的值）
-               
+
             2. output_format (str): 输出格式，仅当fetch_mode="all"时有效
                - "df_dict" (默认): 返回字典列表
                - "df": 返回pandas DataFrame
                - "list_1": 返回扁平化的列表
-               - "" (默认): 返回原始元组列表
-               
+               - "": 返回原始元组列表
+
             3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
-               
+
             4. show_count (bool): 是否显示查询结果数量，默认为False
-            
-            示例：
+
+            示例（使用字典，兼容旧方式）：
                 # 获取所有记录并返回DataFrame
                 fetch_config = {
                     "fetch_mode": "all",
@@ -518,27 +510,34 @@ class SQLExecutor :
                     "data_label": ["id", "name", "email"],
                     "show_count": True
                 }
-                
-                # 获取单条记录
-                fetch_config = {
-                    "fetch_mode": "oneTuple"
-                }
-                
-                # 执行聚合查询获取单个值
-                fetch_config = {
-                    "fetch_mode": "one"
-                }
+
+            示例（使用 FetchConfig 模型）：
+                from lazy_mysql.dataclasses import FetchConfig
+
+                # 获取所有记录并返回DataFrame
+                fetch_config = FetchConfig(
+                    fetch_mode="all",
+                    output_format="df",
+                    data_label=["id", "name", "email"],
+                    show_count=True
+                )
         :param self_close: 是否自动关闭连接
         :return: 查询结果，格式根据fetch_config配置而定
         """
+        # 处理 fetch_config，支持 FetchConfig 模型和旧的字典方式
         if fetch_config is None:
-            fetch_config = {}
-        
-        fetch_mode = fetch_config.get("fetch_mode", "all")
-        output_format = fetch_config.get("output_format", "df_dict")
-        show_count = fetch_config.get("show_count", False)
-        data_label = fetch_config.get("data_label", [])
-        
+            fetch_config = FetchConfig(output_format="df_dict")
+        elif isinstance(fetch_config, dict):
+            # 设置默认 output_format 为 df_dict（与原方法保持一致）
+            config_dict = {"output_format": "df_dict"}
+            config_dict.update(fetch_config)
+            fetch_config = FetchConfig(**config_dict)  # pyright: ignore[reportArgumentType]
+
+        fetch_mode = fetch_config.fetch_mode
+        output_format = fetch_config.output_format
+        show_count = fetch_config.show_count
+        data_label = fetch_config.data_label or []
+
         result = self.fetch_format(sql, fetch_mode, output_format, show_count, data_label, params, self_close)
         return result
 
