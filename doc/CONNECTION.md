@@ -7,8 +7,7 @@
 ### 方法1：使用 MySQLConfig 类（推荐）
 
 ```python
-from lazy_mysql.executor import SQLExecutor
-from lazy_mysql.sql_config import MySQLConfig
+from lazy_mysql import SQLExecutor, MySQLConfig
 
 # 创建数据库配置
 config = MySQLConfig(
