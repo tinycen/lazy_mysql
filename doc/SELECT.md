@@ -2,12 +2,13 @@
 
 > **前提条件**：使用前请先阅读 [CONNECTION.md](CONNECTION.md) 完成数据库连接初始化。
 
-`lazy_mysql` 的 SELECT 操作采用模块化设计，由以下核心组件协同工作：
-
-- **SQLExecutor**: 主接口类，提供统一的查询入口
-- **select()**: 智能查询构建器，支持复杂SQL自动生成
-- **build_where_clause()**: 动态WHERE条件构建器，防SQL注入
-- **fetch_format()**: 多格式结果处理器，支持DataFrame/字典/元组等格式
+> `lazy_mysql` 的 SELECT 操作采用模块化设计，由以下核心组件协同工作：
+>
+> - **SQLExecutor**: 主接口类，提供统一的查询入口
+> - **select()**: 智能查询构建器，支持复杂SQL自动生成
+> - **exists()**: 高效存在性检查，使用 `SELECT 1 ... LIMIT 1` 优化性能
+> - **build_where_clause()**: 动态WHERE条件构建器，防SQL注入
+> - **fetch_format()**: 多格式结果处理器，支持DataFrame/字典/元组等格式
 
 ## 函数签名与参数说明
 
@@ -143,6 +144,112 @@ result = executor.select(
         'conditions': ['users.id', '=', 'profiles.user_id']
     }
 )
+```
+
+## 快速存在性检查 (exists)
+
+当你只需要判断数据是否存在，而不需要获取具体数据时，使用 `exists()` 方法比 `select()` 更高效。
+
+### 函数签名
+
+```python
+exists(
+    table_names,
+    conditions=None,
+    join_conditions=None,
+    self_close=False
+) -> bool
+```
+
+### 参数说明
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| `table_names` | str/list | 是 | 表名，支持单表字符串或多表列表 |
+| `conditions` | dict | 否 | WHERE条件字典，支持多种运算符 |
+| `join_conditions` | dict | 否 | JOIN配置，格式见下方说明 |
+| `self_close` | bool | 否 | 是否自动关闭数据库连接 |
+
+### 性能优势
+
+- 使用 `SELECT 1 ... LIMIT 1` 语法，找到第一条记录即返回
+- 避免全表扫描，性能显著优于 `select()` + 判断结果
+- 不传输实际数据，只返回存在性状态
+
+### 基础用法
+
+```python
+# 判断用户是否存在
+user_exists = executor.exists('users', {'id': 1})
+print(user_exists)  # True 或 False
+
+# 在条件判断中直接使用
+if executor.exists('users', {'email': 'user@example.com'}):
+    print("用户已存在")
+else:
+    print("用户可以注册")
+```
+
+### 复杂条件判断
+
+```python
+# 判断最近7天内是否有新订单
+from lazy_mysql.tools.where_clause import NDayInterval
+
+has_recent_orders = executor.exists(
+    'orders',
+    {'created_at': ('>=', NDayInterval(7))}
+)
+
+# 判断特定状态的订单是否存在
+has_pending_orders = executor.exists(
+    'orders',
+    {'status': 'pending', 'amount': ('>', 1000)}
+)
+```
+
+### JOIN 存在性检查
+
+```python
+# 判断是否存在有订单的用户
+has_users_with_orders = executor.exists(
+    ['users', 'orders'],
+    join_conditions={
+        'join_type': 'INNER JOIN',
+        'conditions': ['users.id', '=', 'orders.user_id']
+    }
+)
+
+# 判断特定用户是否有未完成的订单
+has_pending_orders = executor.exists(
+    ['users', 'orders'],
+    conditions={
+        'users.id': 1,
+        'orders.status': 'pending'
+    },
+    join_conditions={
+        'join_type': 'INNER JOIN',
+        'conditions': ['users.id', '=', 'orders.user_id']
+    }
+)
+```
+
+### 与 select 的对比
+
+```python
+# ❌ 低效：查询所有数据再判断
+users = executor.select(
+    'users',
+    ['id'],
+    conditions={'email': 'user@example.com'},
+    fetch_config={'fetch_mode': 'oneTuple'}
+)
+if users:
+    print("用户存在")
+
+# ✅ 高效：使用 exists 直接判断
+if executor.exists('users', {'email': 'user@example.com'}):
+    print("用户存在")
 ```
 
 ## WHERE 条件

@@ -366,6 +366,41 @@ class SQLExecutor :
         return select_func(self, table_names, fields, conditions, order_by, limit, distinct, join_conditions, self_close, fetch_config)
 
 
+    def exists(self, table_names, conditions=None, join_conditions=None, self_close:bool=False) -> bool:
+        """
+        快速判断指定条件的数据是否在数据库中存在
+
+        使用 SELECT 1 ... LIMIT 1 优化性能，找到第一条记录即返回，避免全表扫描。
+        相比 select 方法，此方法专注于判断存在性，性能更优。
+
+        :param table_names: 表名，可以是字符串或列表
+        :param conditions: WHERE条件，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
+            - 支持 NDayInterval 用于最近N天区间筛选，例如：
+            {'order_dateTime': ('>=', NDayInterval(7))}  # 最近7天
+        :param join_conditions: JOIN条件，格式为字典，如 {"join_type": "JOIN", "conditions": ["field1", "=", "field2"]}
+        :param self_close: 是否自动关闭连接
+        :return: 如果存在符合条件的记录返回 True，否则返回 False
+
+        :example:
+            # 判断单个表中是否存在指定条件的数据
+            >>> executor.exists('users', {'id': 1})
+            True
+
+            # 判断多表JOIN后是否存在符合条件的数据
+            >>> executor.exists(['orders', 'users'],
+            ...                 {'orders.status': 'pending'},
+            ...                 {'join_type': 'JOIN', 'conditions': ['user_id', '=', 'id']})
+            True
+
+            # 判断最近7天内是否有订单
+            >>> from lazy_mysql.tools import NDayInterval
+            >>> executor.exists('orders', {'created_at': ('>=', NDayInterval(7))})
+            True
+        """
+        from .utils.select import exists as exists_func
+        return exists_func(self, table_names, conditions, join_conditions, self_close)
+
+
     def fetch_and_response( self,table_names , fields = None , conditions = None,
         distinct:bool=False, join_conditions=None, fetch_config = None,format_func=None , self_close:bool=True ) :
         """

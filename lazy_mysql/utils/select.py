@@ -1,4 +1,5 @@
 from ..tools.where_clause import build_where_clause
+from ..dataclasses.fetch_config import FetchConfig
 
 def select(executor, table_names, fields=None, conditions=None, order_by=None, limit:int|None=None,
            distinct:bool=False, join_conditions=None, self_close:bool=False, fetch_config=None):
@@ -15,31 +16,28 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
     :param distinct: 是否使用DISTINCT去重，默认为False
     :param join_conditions: JOIN条件，格式为字典，如 {"join_type": "JOIN", "conditions": ["field1", "=", "field2"]}
     :param self_close: 是否自动关闭连接
-    :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为
-        
-        fetch_config是一个字典，包含以下可选配置项：
-        
+    :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为。
+        可以是 FetchConfig 模型实例或字典（兼容旧方式）。
+
+        fetch_config包含以下可选配置项：
+
         1. fetch_mode (str): 获取模式，控制返回数据的数量
            - "all" (默认): 获取所有结果
            - "oneTuple": 获取单条记录（元组格式）
            - "one": 获取单个值（第一个字段的值）
-           
+
         2. output_format (str): 输出格式，仅当fetch_mode="all" 或 fetch_mode = "oneTuple" 时有效
            - "" (默认): 返回原始元组列表
            - "list_1": 返回扁平化的列表（提取每行的第一个字段）
            - "df": 返回pandas DataFrame
            - "df_dict": 返回字典列表（DataFrame转dict）
-           
+
         3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
            如果为None，系统会根据fields自动生成
-           
+
         4. show_count (bool): 是否显示查询结果数量，默认为False
-           
-        5. order_by (str): ORDER BY子句，如 "id DESC" 或 "name ASC"
-        
-        6. limit (int): LIMIT子句，限制返回记录数
-        
-        示例：
+
+        示例（使用字典，兼容旧方式）：
             # 获取所有记录并返回DataFrame
             fetch_config = {
                 "fetch_mode": "all",
@@ -47,24 +45,17 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
                 "data_label": ["id", "name", "email"],
                 "show_count": True
             }
-            
-            # 获取单条记录
-            fetch_config = {
-                "fetch_mode": "oneTuple"
-            }
-            
-            # 获取单个值
-            fetch_config = {
-                "fetch_mode": "one"
-            }
-            
-            # 获取所有记录并返回字典列表
-            fetch_config = {
-                "fetch_mode": "all",
-                "output_format": "df_dict",
-                "order_by": "created_at DESC",
-                "limit": 100
-            }
+
+        示例（使用 FetchConfig 模型）：
+            from lazy_mysql.dataclasses import FetchConfig
+
+            # 获取所有记录并返回DataFrame
+            fetch_config = FetchConfig(
+                fetch_mode="all",
+                output_format="df",
+                data_label=["id", "name", "email"],
+                show_count=True
+            )
     :return: 查询结果，格式根据fetch_config配置而定
     """
     if fields is None:
@@ -133,15 +124,19 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
     if limit:
         sql += f" LIMIT {limit}"
 
+    # 处理 fetch_config，支持 FetchConfig 模型和旧的字典方式
     if fetch_config is None:
-        fetch_config = {}
+        fetch_config = FetchConfig()
+    elif isinstance(fetch_config, dict):
+        fetch_config = FetchConfig(**fetch_config)
+    # 如果已经是 FetchConfig 实例，直接使用
 
-    fetch_mode = fetch_config.get("fetch_mode", "all")
-    output_format = fetch_config.get("output_format", "")
-    show_count = fetch_config.get("show_count", False)
-    
+    fetch_mode = fetch_config.fetch_mode
+    output_format = fetch_config.output_format
+    show_count = fetch_config.show_count
+
     # 获取data_label参数
-    data_label = fetch_config.get("data_label", None)
+    data_label = fetch_config.data_label
     
     # 如果data_label为None，则根据fields自动生成
     if data_label is None and ("df" in output_format or "dict" in output_format) :
@@ -159,3 +154,84 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
 
     result = executor.fetch_format(sql, fetch_mode, output_format, show_count, data_label, params, self_close)
     return result
+
+
+def exists(executor, table_names, conditions=None, join_conditions=None, self_close:bool=False) -> bool:
+    """
+    快速判断指定条件的数据是否在数据库中存在
+
+    使用 SELECT 1 ... LIMIT 1 优化性能，找到第一条记录即返回，避免全表扫描。
+    相比 select 方法，此方法专注于判断存在性，性能更优。
+
+    :param executor: SQLExecutor 实例
+    :param table_names: 表名，可以是字符串或列表
+    :param conditions: WHERE条件，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
+        - 支持 NDayInterval 用于最近N天区间筛选，例如：
+        {'order_dateTime': ('>=', NDayInterval(7))}  # 最近7天
+    :param join_conditions: JOIN条件，格式为字典，如 {"join_type": "JOIN", "conditions": ["field1", "=", "field2"]}
+    :param self_close: 是否自动关闭连接
+    :return: 如果存在符合条件的记录返回 True，否则返回 False
+
+    :example:
+        # 判断单个表中是否存在指定条件的数据
+        >>> executor.exists('users', {'id': 1})
+        True
+
+        # 判断多表JOIN后是否存在符合条件的数据
+        >>> executor.exists(['orders', 'users'], 
+        ...                 {'orders.status': 'pending'},
+        ...                 {'join_type': 'JOIN', 'conditions': ['user_id', '=', 'id']})
+        True
+
+        # 判断最近7天内是否有订单
+        >>> from lazy_mysql.tools import NDayInterval
+        >>> executor.exists('orders', {'created_at': ('>=', NDayInterval(7))})
+        True
+    """
+    # 处理表名
+    if isinstance(table_names, str):
+        # 单个表
+        sql = f"SELECT 1 FROM {table_names}"
+    elif isinstance(table_names, list):
+        # 多个表，需要JOIN
+        main_table = table_names[0]
+        sql = f"SELECT 1 FROM {main_table}"
+
+        # 添加JOIN子句
+        if join_conditions:
+            # JOIN操作，table_names必须是包含至少两个表名的列表
+            if len(table_names) < 2:
+                raise ValueError("存在JOIN操作时，table_names必须是包含至少两个表名的列表")
+            join_type = join_conditions.get("join_type", "JOIN")
+            join_conds = join_conditions.get("conditions", [])
+
+            # 为每个额外的表添加JOIN子句
+            for i, join_table in enumerate(table_names[1:], start=1):
+                # 如果提供了具体的JOIN条件，则使用它
+                if join_conds and len(join_conds) >= 3:
+                    field1, operator, field2 = join_conds[0], join_conds[1], join_conds[2]
+                    # 如果字段名没有表前缀，添加主表前缀
+                    if '.' not in field1:
+                        field1 = f"{main_table}.{field1}"
+                    if '.' not in field2:
+                        field2 = f"{join_table}.{field2}"
+                    sql += f" {join_type} {join_table} ON {field1} {operator} {field2}"
+                else:
+                    # 默认使用item_id进行JOIN
+                    sql += f" {join_type} {join_table} ON {main_table}.item_id = {join_table}.item_id"
+    else:
+        raise ValueError("table_names must be a string or a list of strings")
+
+    # 构造WHERE子句
+    where_clause, params = build_where_clause(conditions)
+    if where_clause:
+        sql += f" WHERE {where_clause}"
+
+    # 添加 LIMIT 1 优化性能
+    sql += " LIMIT 1"
+
+    # 执行查询
+    result = executor.fetch_format(sql, "one", "", False, None, params, self_close)
+
+    # 如果有结果返回 True，否则返回 False
+    return result is not None

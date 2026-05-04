@@ -28,10 +28,7 @@ pip install --upgrade lazy-mysql
 ### 1. 数据库连接初始化
 
 ```python
-from lazy_mysql import SQLExecutor
-from lazy_mysql import MySQLConfig
-from lazy_mysql import NDayInterval
-
+from lazy_mysql import SQLExecutor, MySQLConfig, NDayInterval
 
 # 创建数据库配置
 config = MySQLConfig(
