@@ -13,6 +13,7 @@ __email__ = "sky_ruocen@qq.com"
 # 提供便捷的导入
 __all__ = ['MySQLConfig', 
            'DEFAULT_MYSQL_CONFIG',
+           'SQLExecutor',
            'FetchConfig', 'NDayInterval',
            'insert', 'upsert', 'select',
            'update', 'delete', 'merge_update_lists',
