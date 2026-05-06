@@ -1,3 +1,4 @@
+from typing import Any
 from .utils.connect import connection
 from .dataclasses.fetch_config import FetchConfig
 
@@ -11,6 +12,9 @@ RETRYABLE_ERRORS = [
 
 class SQLExecutor :
     """SQL执行器类，提供统一的数据库操作接口"""
+
+    mydb: Any
+    mycursor: Any
 
     def __init__( self , sql_config ,database=None,dict_cursor=False) :
         self.sql_config = sql_config
@@ -26,8 +30,33 @@ class SQLExecutor :
 
     # 关闭数据库连接
     def close( self ) :
-        self.mycursor.close()
-        self.mydb.close()
+        try:
+            if self.mycursor is not None:
+                self.mycursor.close()
+        except Exception:
+            pass
+        try:
+            if self.mydb is not None:
+                self.mydb.close()
+        except Exception:
+            pass
+        # 将 self.mycursor 和 self.mydb 置为 None，最大程度减少程序退出时的 __del__ 调用
+        # 降低 PyCharm 调试器与 mysql-connector-python 的兼容性问题
+        self.mycursor = None
+        self.mydb = None
+
+    def __del__(self):
+        # 兜底：如果用户忘记调用 close()，在对象销毁时尝试清理
+        # 使用 getattr 避免在解释器关闭时访问已销毁的属性
+        try:
+            mycursor = getattr(self, 'mycursor', None)
+            mydb = getattr(self, 'mydb', None)
+            if mycursor is not None:
+                mycursor.close()
+            if mydb is not None:
+                mydb.close()
+        except Exception:
+            pass
 
     def _handle_connection_error(self, error, operation_name, retry_count=0, sql=None, params=None, needs_rollback=False):
         """
@@ -49,10 +78,7 @@ class SQLExecutor :
             try:
                 print(f"Connection lost or timeout during {operation_name}. Attempting to reconnect...")
                 # 关闭现有连接
-                try:
-                    self.mydb.close()
-                except:
-                    pass
+                self.close()
                 
                 # 重新初始化连接
                 self.mydb, self.mycursor = connection(self.sql_config, self.database, dict_cursor=self.dict_cursor)
@@ -74,10 +100,7 @@ class SQLExecutor :
             except:
                 pass  # 连接可能已经断开，忽略回滚错误
         
-        try:
-            self.mydb.close()
-        except:
-            pass  # 连接可能已经断开，忽略关闭错误
+        self.close()
             
         raise Exception(f"SQL {operation_name} failed: {str(error)}")
 
