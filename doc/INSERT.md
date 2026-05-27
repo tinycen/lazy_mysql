@@ -20,9 +20,10 @@
 2. [基本 INSERT 用法](#基本-insert-用法)
 3. [多条记录的批量插入](#多条记录的批量插入)
 4. [处理重复记录](#处理重复记录)
-5. [UPSERT 操作（存在更新，不存在插入）](#upsert-操作存在更新不存在插入)
-6. [超大数据集处理（100,000+ 记录）](#超大数据集处理100000-记录)
-7. [高级最佳实践](#高级最佳实践)
+5. [超大数据集处理（100,000+ 记录）](#超大数据集处理100000-记录)
+6. [高级最佳实践](#高级最佳实践)
+
+> **UPSERT 操作**：如需使用"存在更新，不存在插入"功能，请参阅 [UPSERT.md](UPSERT.md)。该操作有特定的字段完整性要求，请务必阅读文档中的警告说明。
 
 ## 函数签名与参数说明
 
@@ -147,108 +148,6 @@ print(f"插入了 {inserted_count} 条新记录（重复项已跳过）")
 - 单条插入：使用 `INSERT` 或 `INSERT IGNORE`
 - 批量插入：根据数据量自动选择最优策略
 - 大数据量：使用 `LOAD DATA LOCAL INFILE` 实现超高速导入
-
-## UPSERT 操作（存在更新，不存在插入）
-
-`upsert` 方法提供了更智能的数据处理策略，当记录存在时更新，不存在时插入。这通过 MySQL 的 `INSERT ... ON DUPLICATE KEY UPDATE` 语句实现。
-
-### 函数签名与参数说明
-
-```python
-upsert(
-    executor: SQLExecutor,
-    table_name,
-    fields,
-    fields_update=None,
-    commit=False,
-    self_close=False
-)
-```
-
-### 核心参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `executor` | SQLExecutor | 是 | SQL执行器实例 |
-| `table_name` | str | 是 | 目标表名 |
-| `fields` | dict/list | 是 | 插入数据，支持单条字典或字典列表 |
-| `fields_update` | set/list | 否 | 冲突时更新的字段集合，默认None表示更新所有字段 |
-| `commit` | bool | 否 | 是否自动提交事务，默认False |
-| `self_close` | bool | 否 | 是否自动关闭连接，默认False |
-
-### 基本用法示例
-
-#### 单条记录 Upsert
-```python
-# 用户数据，如果存在则更新，不存在则插入
-user_data = {
-    'id': 1,
-    'name': 'John Doe',
-    'email': 'john.updated@example.com',
-    'age': 31,
-    'updated_at': '2023-12-01 10:00:00'
-}
-
-# 执行 upsert 操作
-executor.upsert('users', user_data, commit=True)
-print("Upsert 操作完成！")
-```
-
-#### 批量 Upsert
-```python
-# 批量 upsert 多个用户记录
-users_data = [
-    {'id': 1, 'name': 'Alice Smith', 'email': 'alice@example.com', 'age': 26},
-    {'id': 2, 'name': 'Bob Johnson', 'email': 'bob.updated@example.com', 'age': 36},
-    {'id': 3, 'name': 'Carol Williams', 'email': 'carol@example.com', 'age': 29}
-]
-
-# 批量 upsert
-upserted_count = executor.upsert('users', users_data, commit=True)
-print(f"成功处理 {upserted_count} 条记录！")
-```
-
-### 选择性字段更新
-
-通过 `fields_update` 参数可以精确控制冲突时只更新特定字段，其他字段保持不变：
-
-```python
-# 只更新 age 和 updated_at 字段，name 和 email 保持不变
-user_data = {
-    'id': 1,
-    'name': 'Temporary Name',  # 这个字段不会被更新
-    'email': 'temp@example.com',  # 这个字段不会被更新
-    'age': 32,
-    'updated_at': '2023-12-01 15:00:00'
-}
-
-# 指定只更新特定字段
-executor.upsert('users', user_data, fields_update={'age', 'updated_at'}, commit=True)
-print("选择性字段更新完成！")
-```
-
-### Upsert 与 Insert 的区别
-
-| 场景 | insert() | upsert() |
-|------|----------|----------|
-| 主键冲突 | 报错或跳过（skip_duplicate=True） | 自动更新冲突记录 |
-| 唯一索引冲突 | 报错或跳过（skip_duplicate=True） | 自动更新冲突记录 |
-| 数据存在性 | 需要预先检查 | 自动处理 |
-| 适用场景 | 纯插入操作 | 插入或更新操作 |
-
-### 性能特征
-
-- **单条操作**：基于 `INSERT ... ON DUPLICATE KEY UPDATE`，性能优异
-- **批量操作**：使用 `executemany` 实现批量 upsert
-- **内存效率**：与标准 insert 方法相当的内存使用
-- **事务支持**：完整的事务控制和错误处理
-
-### 最佳实践建议
-
-1. **使用主键或唯一索引**：确保表有适当的主键或唯一索引来触发冲突检测
-2. **选择性更新**：使用 `fields_update` 避免不必要的字段更新
-3. **批量处理**：大批量数据使用列表格式获得更好性能
-4. **事务管理**：复杂业务逻辑中手动控制提交时机
 
 ## 超大数据集处理（100,000+ 记录）
 
