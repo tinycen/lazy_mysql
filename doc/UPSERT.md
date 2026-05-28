@@ -12,8 +12,9 @@
 4. [基本 UPSERT 用法](#基本-upsert-用法)
 5. [选择性字段更新](#选择性字段更新)
 6. [批量 Upsert](#批量-upsert)
-7. [Upsert 与 Insert 的区别](#upsert-与-insert-的区别)
-8. [最佳实践建议](#最佳实践建议)
+7. [特殊场景：表字段与传入字段完全一致](#特殊场景表字段与传入字段完全一致)
+8. [Upsert 与 Insert 的区别](#upsert-与-insert-的区别)
+9. [最佳实践建议](#最佳实践建议)
 
 ## 危险警告与常见误区
 
@@ -231,6 +232,73 @@ print(f"成功处理 {upserted_count} 条记录！")
 # 批量 upsert，但冲突时只更新 age 字段
 executor.upsert('users', users_data, fields_update={'age'}, commit=True)
 ```
+
+## 特殊场景：表字段与传入字段完全一致
+
+当表的所有字段恰好就是你想要 upsert 的字段时（没有额外字段），可以直接传入部分字段，无需担心数据丢失。
+
+### 场景示例
+
+假设 `scenes` 表结构如下：
+
+```sql
+CREATE TABLE scenes (
+    task VARCHAR(50),
+    scene VARCHAR(50),
+    environment VARCHAR(20),
+    model_index INT,
+    sort_order INT,
+    UNIQUE KEY uk_scene (task, scene, environment, model_index, sort_order)
+);
+```
+
+表只有这 5 个字段，没有 `id`、`created_at` 等其他字段：
+
+```python
+# ✅ 正确！表只有这 5 个字段，传入完整字段集合即可
+executor.upsert('scenes', {
+    "task": "product_listing",
+    "scene": "generate_title",
+    "environment": "local",
+    "model_index": 10,
+    "sort_order": 1
+}, commit=True)
+```
+
+**执行结果**：
+- 记录不存在：插入这 5 个字段的值
+- 记录存在（唯一索引冲突）：更新这 5 个字段的值
+
+### ⚠️ 重要提醒
+
+这种简化写法**仅在表字段与传入字段完全一致时**才安全。如果表还有其他字段（如 `config`、`created_at` 等），未传入的字段会被设为 `NULL`：
+
+```sql
+-- 危险！如果表还有其他字段
+CREATE TABLE scenes (
+    task VARCHAR(50),
+    scene VARCHAR(50),
+    environment VARCHAR(20),
+    model_index INT,
+    sort_order INT,
+    config JSON,           -- 额外字段！
+    created_at DATETIME,   -- 额外字段！
+    UNIQUE KEY uk_scene (...)
+);
+```
+
+```python
+# ❌ 错误！config 和 created_at 会被设为 NULL
+executor.upsert('scenes', {
+    "task": "product_listing",
+    "scene": "generate_title",
+    "environment": "local",
+    "model_index": 10,
+    "sort_order": 1
+}, commit=True)
+```
+
+**安全做法**：确认表结构后再使用简化写法，或使用 `fields_update` 配合完整数据。
 
 ## Upsert 与 Insert 的区别
 
