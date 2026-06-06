@@ -49,10 +49,22 @@ class MySQLConfig:
         )
 
     @classmethod
+    def from_dict(cls, sql_config):
+        """从字典读取MySQL配置，兼容password/database别名。"""
+        config = dict(sql_config)
+        if "password" in config and "passwd" not in config:
+            config["passwd"] = config.pop("password")
+        if "database" in config and "default_database" not in config:
+            config["default_database"] = config.pop("database")
+        return cls(**config)
+
+    @classmethod
     def resolve(cls, sql_config=None):
-        """兼容旧配置对象；传入None时从环境变量创建配置。"""
+        """兼容配置对象和字典；传入None时从环境变量创建配置。"""
         if sql_config is None:
             return cls.from_env()
+        if isinstance(sql_config, dict):
+            return cls.from_dict(sql_config)
         return sql_config
 
     def __repr__(self):

@@ -38,6 +38,35 @@ def test_mysql_config_resolve_none_reads_from_env(monkeypatch):
     assert config.host == "env-host"
 
 
+def test_mysql_config_resolve_accepts_dict():
+    config = MySQLConfig.resolve({
+        "host": "dict-host",
+        "port": "3308",
+        "user": "dict-user",
+        "passwd": "dict-secret",
+        "default_database": "dict-db",
+    })
+
+    assert isinstance(config, MySQLConfig)
+    assert config.host == "dict-host"
+    assert config.port == 3308
+    assert config.user == "dict-user"
+    assert config.passwd == "dict-secret"
+    assert config.default_database == "dict-db"
+
+
+def test_mysql_config_resolve_accepts_dict_aliases():
+    config = MySQLConfig.resolve({
+        "host": "alias-host",
+        "password": "alias-secret",
+        "database": "alias-db",
+    })
+
+    assert config.host == "alias-host"
+    assert config.passwd == "alias-secret"
+    assert config.default_database == "alias-db"
+
+
 def test_sql_executor_accepts_optional_sql_config(monkeypatch):
     captured = {}
 
@@ -65,3 +94,35 @@ def test_sql_executor_accepts_optional_sql_config(monkeypatch):
     assert captured["sql_config"].host == "executor-host"
     assert captured["database"] is None
     assert captured["dict_cursor"] is False
+
+
+def test_sql_executor_accepts_dict_sql_config(monkeypatch):
+    captured = {}
+
+    class DummyConnection:
+        def close(self):
+            pass
+
+    class DummyCursor:
+        def close(self):
+            pass
+
+    def fake_connection(sql_config=None, database=None, dict_cursor=False):
+        captured["sql_config"] = sql_config
+        captured["database"] = database
+        captured["dict_cursor"] = dict_cursor
+        return DummyConnection(), DummyCursor()
+
+    monkeypatch.setattr("lazy_mysql.executor.connection", fake_connection)
+
+    executor = SQLExecutor({
+        "host": "executor-dict-host",
+        "password": "executor-secret",
+        "database": "executor-db",
+    })
+    executor.close()
+
+    assert isinstance(captured["sql_config"], MySQLConfig)
+    assert captured["sql_config"].host == "executor-dict-host"
+    assert captured["sql_config"].passwd == "executor-secret"
+    assert captured["sql_config"].default_database == "executor-db"
