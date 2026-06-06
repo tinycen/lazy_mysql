@@ -56,10 +56,24 @@ executor = SQLExecutor(database='another_db')
 ```
 ### 2. 智能查询操作
 
+> **方法选择指南**
+>
+> | 方法 | 用途 | 是否关心返回 |
+> |------|------|-------------|
+> | `execute()` | 写操作：INSERT / UPDATE / DELETE | 否（返回 None） |
+> | `query()` | 手写 SELECT（子查询、UNION、窗口函数等） | 是（通过 `fetch_config` 控制格式） |
+> | `select()` | 结构化 SELECT（ORM 风格，自动构造 SQL） | 是（通过 `fetch_config` 控制格式） |
+
 ```python
-# 基础查询
+# 基础查询（select 自动构造 SQL）
 users = executor.select('users', ['id', 'name', 'email'])
 print(users)
+
+# 手写复杂 SQL（query 直接执行）
+result = executor.query(
+    "SELECT id, name, RANK() OVER (ORDER BY score DESC) as rank FROM users",
+    fetch_config={'output_format': 'df_dict', 'data_label': ['id', 'name', 'rank']}
+)
 
 # 条件查询 + 排序限制
 active_users = executor.select(
@@ -141,6 +155,7 @@ executor.commit_close()
 
 ### 🔍 查询操作
 - [SELECT 查询操作](doc/SELECT.md) - 智能查询构建、复杂条件、多表关联、结果格式化
+- [自定义 SQL 查询](doc/QUERY.md) - 手写 SQL 执行、子查询、UNION、窗口函数
 
 ### 💾 数据修改
 - [INSERT 插入操作](doc/INSERT.md) - 批量插入、大数据优化、重复处理

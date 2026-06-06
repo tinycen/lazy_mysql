@@ -2,10 +2,23 @@
 
 > **前提条件**：使用前请先阅读 [CONNECTION.md](CONNECTION.md) 完成数据库连接初始化。
 
+> **核心方法区别速览**
+>
+> | 方法 | 定位 | 是否关心返回 | 典型场景 |
+> |------|------|-------------|---------|
+> | `execute()` | 通用 SQL 执行器 | 否（返回 None）| INSERT / UPDATE / DELETE 等写操作 |
+> | `query()` | 手写 SELECT 查询 | 是（通过 `fetch_config` 控制格式）| 复杂 SELECT、子查询、UNION、窗口函数，详见 [QUERY.md](QUERY.md) |
+> | `select()` | 结构化 SELECT 查询（ORM 风格）| 是（通过 `fetch_config` 控制格式）| 常规查询，自动构造 SQL，开发效率高 |
+>
+> - 写操作（INSERT/UPDATE/DELETE）→ 用 `execute()`
+> - 读操作且手写 SQL → 用 `query()`
+> - 读操作且希望自动构造 SQL → 用 `select()`
+
 > `lazy_mysql` 的 SELECT 操作采用模块化设计，由以下核心组件协同工作：
 >
 > - **SQLExecutor**: 主接口类，提供统一的查询入口
 > - **select()**: 智能查询构建器，支持复杂SQL自动生成
+> - **query()**: 自定义SQL执行器，用于手写复杂SQL（子查询、UNION、窗口函数等），详见 [QUERY.md](QUERY.md)
 > - **exists()**: 高效存在性检查，使用 `SELECT 1 ... LIMIT 1` 优化性能
 > - **build_where_clause()**: 动态WHERE条件构建器，防SQL注入
 > - **fetch_format()**: 多格式结果处理器，支持DataFrame/字典/元组等格式
@@ -145,6 +158,12 @@ result = executor.select(
     }
 )
 ```
+
+---
+
+## 自定义 SQL 查询
+
+当 `select()` 无法满足需求时（如子查询、UNION、窗口函数等），请使用 `query()` 方法直接执行手写 SQL。详见 [QUERY.md](QUERY.md)。
 
 ## 快速存在性检查 (exists)
 
