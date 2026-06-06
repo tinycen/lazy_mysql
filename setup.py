@@ -14,6 +14,7 @@ setup(
     install_requires=[
         'mysql-connector-python>=9.4.0',
         'pandas>=2.3.1',
+        'pydantic>=2.0.0',
     ],
     author='tinycen',
     author_email='sky_ruocen@qq.com',

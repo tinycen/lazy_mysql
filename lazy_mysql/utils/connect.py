@@ -3,6 +3,15 @@ import mysql.connector
 from mysql.connector.errors import ConnectionTimeoutError
 from ..dataclasses.mysql_config import MySQLConfig
 
+def _check_connector_version():
+    try:
+        version_tuple = tuple(map(int, mysql.connector.__version__.split('.')[:2]))
+        if version_tuple < (9, 4):
+            print(f"警告: MySQL连接器版本{mysql.connector.__version__}已过时，建议升级到9.4.0或更高版本")
+            print("pip install --upgrade mysql-connector-python")
+    except Exception:
+        return
+
 # 获取数据库连接和游标
 def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
     retry_delay_base=5):
@@ -20,8 +29,8 @@ def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
     """
     sql_config = MySQLConfig.resolve(sql_config)
 
-    if database is None and hasattr(sql_config, 'default_database'):
-        database = sql_config.default_database
+    if database is None:
+        database = getattr(sql_config, "default_database", None)
     
     retry_count = 0
     last_exception = None
@@ -29,7 +38,8 @@ def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
     mysql.connector.connect 支持的详细连接参数介绍：
         https://dev.mysql.com/doc/connector-python/en/connector-python-connectargs.html
     '''
-    
+    _check_connector_version()
+
     while retry_count <= max_retries:
         try:
             # 新版本使用password参数和推荐参数
@@ -55,19 +65,9 @@ def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
             # dictionary = True 查询返回字典列表[{'id': 1, 'name': 'a'}, {'id': 2, 'name': 'b'}]  
             # dictionary = False 查询返回元组列表[(1, 'a'), (2, 'b')]  
             
-            # 检查版本是否过时
-            if tuple(map(int, mysql.connector.__version__.split('.')[:2])) < (9, 4):
-                print(f"警告: MySQL连接器版本{mysql.connector.__version__}已过时，建议升级到9.4.0或更高版本")
-                print("pip install --upgrade mysql-connector-python")
-                
             return mydb, mycursor
 
-            
         except TypeError as e:
-            # 检查版本是否过时，但保留原始错误信息
-            if tuple(map(int, mysql.connector.__version__.split('.')[:2])) < (9, 4):
-                print(f"警告: MySQL连接器版本{mysql.connector.__version__}已过时，建议升级到9.4.0或更高版本")
-                print("pip install --upgrade mysql-connector-python")
             # 重新抛出原始的TypeError，保留详细错误信息
             raise TypeError(f"数据库连接参数类型错误: {str(e)}") from e
                 
@@ -80,9 +80,8 @@ def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
                 time.sleep(delay)
             else:
                 break
-        except Exception as e:
-            # 其他异常直接抛出
-            raise e
+        except Exception:
+            raise
     
     # 如果重试次数用完仍然失败，抛出最后一次的异常
     if last_exception:

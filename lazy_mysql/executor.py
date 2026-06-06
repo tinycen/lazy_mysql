@@ -75,7 +75,7 @@ class SQLExecutor :
         error_str_lower = error_str.lower()
         
         # 检查是否是可重试的错误（连接丢失或超时错误）
-        if retry_count == 0 and any(error.lower() in error_str_lower for error in RETRYABLE_ERRORS):
+        if retry_count == 0 and any(err_kw.lower() in error_str_lower for err_kw in RETRYABLE_ERRORS):
             try:
                 print(f"Connection lost or timeout during {operation_name}. Attempting to reconnect...")
                 # 关闭现有连接
@@ -150,7 +150,11 @@ class SQLExecutor :
                     # 单个字典 或 元组参数
                     self.mycursor.execute(sql, params)
                 elif isinstance(params, list):
-                    if isinstance(params[0], (dict, tuple, list)):
+                    if not params:
+                        self.mycursor.execute(sql)
+                    elif isinstance(params[0], (dict, tuple, list)):
+                        if any(p in (None, [], (), {}) for p in params):
+                            raise ValueError("批量执行参数列表中存在空参数集（None/[]/()/{}），请检查 params")
                         # 简单高效地检测SELECT查询（检查SQL开头）
                         sql_start = sql.lstrip()[:10].upper()
                         if sql_start.startswith('SELECT'):
