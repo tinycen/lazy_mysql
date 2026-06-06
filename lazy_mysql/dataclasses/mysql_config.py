@@ -11,7 +11,6 @@ class MySQLConfig:
     ENV_HOST = "LAZY_MYSQL_HOST"
     ENV_PORT = "LAZY_MYSQL_PORT"
     ENV_USER = "LAZY_MYSQL_USER"
-    ENV_PASSWORD = "LAZY_MYSQL_PASSWORD"
     ENV_PASSWD = "LAZY_MYSQL_PASSWD"
     ENV_DATABASE = "LAZY_MYSQL_DATABASE"
     ENV_DEFAULT_DATABASE = "LAZY_MYSQL_DEFAULT_DATABASE"
@@ -37,11 +36,15 @@ class MySQLConfig:
     @classmethod
     def from_env(cls):
         """从系统环境变量读取MySQL配置，未设置的字段沿用默认值。"""
+        passwd = os.getenv(cls.ENV_PASSWD, '')
+        if not passwd:
+            raise ValueError("LAZY_MYSQL_PASSWORD environment variable is not set")
+
         return cls(
             host=os.getenv(cls.ENV_HOST, 'localhost'),
-            port=os.getenv(cls.ENV_PORT, 3306),
+            port=int(os.getenv(cls.ENV_PORT, 3306)),  # pyright: ignore[reportArgumentType]
             user=os.getenv(cls.ENV_USER, 'root'),
-            passwd=os.getenv(cls.ENV_PASSWORD, os.getenv(cls.ENV_PASSWD, '')),
+            passwd=passwd,
             default_database=os.getenv(
                 cls.ENV_DATABASE,
                 os.getenv(cls.ENV_DEFAULT_DATABASE)

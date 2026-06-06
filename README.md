@@ -41,8 +41,14 @@ config = MySQLConfig(
 # 创建执行器实例
 executor = SQLExecutor(config)
 
-# 也可以通过环境变量创建连接，SQLExecutor() 会自动读取：
-# LAZY_MYSQL_HOST / LAZY_MYSQL_PORT / LAZY_MYSQL_USER / LAZY_MYSQL_PASSWORD / LAZY_MYSQL_DATABASE
+# 指定数据库（覆盖配置中的 default_database）
+executor = SQLExecutor(config, database='another_db')
+
+# 使用字典游标返回结果
+executor = SQLExecutor(config, dict_cursor=True)
+
+# 不传入配置时自动从环境变量读取：
+# LAZY_MYSQL_HOST / LAZY_MYSQL_PORT / LAZY_MYSQL_USER / LAZY_MYSQL_PASSWD / LAZY_MYSQL_DATABASE
 executor = SQLExecutor()
 ```
 ### 2. 智能查询操作

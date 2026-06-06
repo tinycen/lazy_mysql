@@ -20,6 +20,12 @@ config = MySQLConfig(
 # 创建执行器实例
 executor = SQLExecutor(config)
 
+# 指定数据库（覆盖配置中的 default_database）
+executor = SQLExecutor(config, database='another_db')
+
+# 使用字典游标返回结果
+executor = SQLExecutor(config, dict_cursor=True)
+
 # 现在可以使用 executor 执行各种数据库操作
 # ... 你的数据库操作代码 ...
 
@@ -42,9 +48,34 @@ config = {
 
 executor = SQLExecutor(config)
 
-# ... 你的数据库操作代码 ...
+# 指定数据库并启用字典游标
+executor = SQLExecutor(config, database='another_db', dict_cursor=True)
 
-executor.close()
+```
+
+### 方法3：从环境变量读取配置
+
+不传入配置时，`SQLExecutor` 会自动从系统环境变量读取 MySQL 连接信息。
+
+支持的环境变量：
+
+| 环境变量 | 说明 | 默认值 |
+|----------|------|--------|
+| `LAZY_MYSQL_HOST` | 数据库主机地址 | `localhost` |
+| `LAZY_MYSQL_PORT` | 数据库端口 | `3306` |
+| `LAZY_MYSQL_USER` | 用户名 | `root` |
+| `LAZY_MYSQL_PASSWD` | 密码 | 空字符串 |
+| `LAZY_MYSQL_DATABASE` / `LAZY_MYSQL_DEFAULT_DATABASE` | 默认数据库 | `None` |
+
+```python
+from lazy_mysql.executor import SQLExecutor
+
+# 自动从环境变量读取配置
+executor = SQLExecutor()
+
+# 指定数据库并启用字典游标
+executor = SQLExecutor(database='another_db', dict_cursor=True)
+
 ```
 
 
@@ -113,8 +144,8 @@ config = MySQLConfig(
     default_database='your_database'
 )
 
-# 创建带自定义重试的执行器
-executor = SQLExecutor(config, max_retries=3, retry_delay_base=3)
+# 创建执行器，指定数据库并启用字典游标
+executor = SQLExecutor(config, database='your_database', dict_cursor=True)
 ```
 
 ### 常见连接错误
