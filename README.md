@@ -56,14 +56,6 @@ executor = SQLExecutor(database='another_db')
 ```
 ### 2. 智能查询操作
 
-> **方法选择指南**
->
-> | 方法 | 用途 | 是否关心返回 |
-> |------|------|-------------|
-> | `execute()` | 写操作：INSERT / UPDATE / DELETE | 否（返回 None） |
-> | `query()` | 手写 SELECT（子查询、UNION、窗口函数等） | 是（通过 `fetch_config` 控制格式） |
-> | `select()` | 结构化 SELECT（ORM 风格，自动构造 SQL） | 是（通过 `fetch_config` 控制格式） |
-
 ```python
 # 基础查询（select 自动构造 SQL）
 users = executor.select('users', ['id', 'name', 'email'])

@@ -2,17 +2,19 @@
 
 当你需要执行手写 SQL 查询时，使用 `query()` 方法。与 `select()` 不同，`query()` 不自动生成 SQL，而是直接执行你提供的完整 SQL 语句，并通过 `fetch_config` 控制返回格式。
 
-> **核心方法区别速览**
->
-> | 方法 | 定位 | 是否关心返回 | 典型场景 |
-> |------|------|-------------|---------|
-> | `execute()` | 通用 SQL 执行器 | 否（返回 None）| INSERT / UPDATE / DELETE 等写操作 |
-> | `query()` | 手写 SELECT 查询 | 是（通过 `fetch_config` 控制格式）| 复杂 SELECT、子查询、UNION、窗口函数 |
-> | `select()` | 结构化 SELECT 查询（ORM 风格）| 是（通过 `fetch_config` 控制格式）| 常规查询，自动构造 SQL，开发效率高 |
->
-> - 写操作（INSERT/UPDATE/DELETE）→ 用 `execute()`
-> - 读操作且手写 SQL → 用 `query()`
-> - 读操作且希望自动构造 SQL → 用 `select()`
+## 与其他方法的区别
+
+`lazy_mysql` 提供三个核心 SQL 执行方法，根据场景选择：
+
+| 方法 | 定位 | 是否关心返回 | 典型场景 |
+|------|------|-------------|---------|
+| `execute()` | 通用 SQL 执行器 | 否（返回 None）| INSERT / UPDATE / DELETE 等写操作 |
+| `query()` | 手写 SELECT 查询 | 是（通过 `fetch_config` 控制格式）| 复杂 SELECT、子查询、UNION、窗口函数 |
+| `select()` | 结构化 SELECT 查询（ORM 风格）| 是（通过 `fetch_config` 控制格式）| 常规查询，自动构造 SQL，开发效率高 |
+
+- 写操作（INSERT/UPDATE/DELETE）→ 用 `execute()`
+- 读操作且手写 SQL → 用 `query()`
+- 读操作且希望自动构造 SQL → 用 `select()`
 
 ## 适用场景
 
