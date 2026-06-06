@@ -19,9 +19,9 @@ def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
     建立数据库连接并返回连接对象和游标对象
 
     Args:
-        sql_config (object, optional): 数据库配置对象，包含host, port, user, passwd, default_database等属性。
+        sql_config (object, optional): 数据库配置对象，包含host, port, user, passwd, database等属性。
             传入None时自动从系统环境变量读取配置。
-        database (str, optional): 数据库名称，database参数优先使用，默认使用 sql_config.default_database
+        database (str, optional): 数据库名称，database参数优先使用，默认使用 sql_config.database
         max_retries (int, optional): 最大重试次数，默认为5次
         retry_delay_base (int, optional): 重试延迟基数（秒），默认为5秒，第n次重试延迟为 retry_delay_base * n 秒
     Returns:
@@ -30,7 +30,7 @@ def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
     sql_config = MySQLConfig.resolve(sql_config)
 
     if database is None:
-        database = getattr(sql_config, "default_database", None)
+        database = getattr(sql_config, "database", None)
     
     retry_count = 0
     last_exception = None
@@ -48,7 +48,7 @@ def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
             # pool_reset_session=True - 连接返回池时重置会话变量，确保连接状态干净
             # pool_name="shop_pool" - 连接池名称，用于标识和管理连接池 
             # 如果设置了 pool_reset_session 就必须设置 pool_name ，省略会报错- AttributeError: 
-            # Pool name 'rm-wz93y5aqe2f5gvu5uto.mysql.rds.aliyuncs.com_3306_root_yqq_new_schema' is too long
+            # Pool name 'rm-wz93y5afvf5uto.mysql.rds.aliyuncs.com_3306_root_yqq_new_schema' is too long
             # use_pure=True - 使用纯Python实现而非C扩展，提高兼容性，减少外部依赖（实测，设置在为False会导致连接失败！）
             # allow_local_infile=True - 启用LOAD DATA LOCAL INFILE功能，允许从本地文件加载数据
             mydb = mysql.connector.connect(

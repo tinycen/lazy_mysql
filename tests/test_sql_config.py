@@ -15,18 +15,7 @@ def test_mysql_config_from_env(monkeypatch):
     assert config.port == 3307
     assert config.user == "app_user"
     assert config.passwd == "secret"
-    assert config.default_database == "app_db"
-
-
-def test_mysql_config_from_env_supports_legacy_password_and_database_names(monkeypatch):
-    monkeypatch.delenv("LAZY_MYSQL_DATABASE", raising=False)
-    monkeypatch.setenv("LAZY_MYSQL_PASSWD", "legacy_secret")
-    monkeypatch.setenv("LAZY_MYSQL_DEFAULT_DATABASE", "legacy_db")
-
-    config = MySQLConfig.from_env()
-
-    assert config.passwd == "legacy_secret"
-    assert config.default_database == "legacy_db"
+    assert config.database == "app_db"
 
 
 def test_mysql_config_resolve_none_reads_from_env(monkeypatch):
@@ -45,7 +34,7 @@ def test_mysql_config_resolve_accepts_dict():
         "port": "3308",
         "user": "dict-user",
         "passwd": "dict-secret",
-        "default_database": "dict-db",
+        "database": "dict-db",
     })
 
     assert isinstance(config, MySQLConfig)
@@ -53,19 +42,7 @@ def test_mysql_config_resolve_accepts_dict():
     assert config.port == 3308
     assert config.user == "dict-user"
     assert config.passwd == "dict-secret"
-    assert config.default_database == "dict-db"
-
-
-def test_mysql_config_resolve_accepts_dict_aliases():
-    config = MySQLConfig.resolve({
-        "host": "alias-host",
-        "passwd": "alias-secret",
-        "database": "alias-db",
-    })
-
-    assert config.host == "alias-host"
-    assert config.passwd == "alias-secret"
-    assert config.default_database == "alias-db"
+    assert config.database == "dict-db"
 
 
 def test_mysql_config_resolve_dict_fills_missing_values_from_env(monkeypatch):
@@ -80,7 +57,7 @@ def test_mysql_config_resolve_dict_fills_missing_values_from_env(monkeypatch):
     assert config.port == 3310
     assert config.user == "env-user"
     assert config.passwd == "env-secret"
-    assert config.default_database == "param-db"
+    assert config.database == "param-db"
 
 
 def test_sql_executor_accepts_optional_sql_config(monkeypatch):
@@ -142,10 +119,10 @@ def test_sql_executor_accepts_dict_sql_config(monkeypatch):
     assert isinstance(captured["sql_config"], MySQLConfig)
     assert captured["sql_config"].host == "executor-dict-host"
     assert captured["sql_config"].passwd == "executor-secret"
-    assert captured["sql_config"].default_database == "executor-db"
+    assert captured["sql_config"].database == "executor-db"
 
 
-def test_connection_does_not_force_default_database(monkeypatch):
+def test_connection_does_not_force_database(monkeypatch):
     captured = {}
 
     class DummyConnection:
@@ -157,7 +134,6 @@ def test_connection_does_not_force_default_database(monkeypatch):
         return DummyConnection()
 
     monkeypatch.delenv("LAZY_MYSQL_DATABASE", raising=False)
-    monkeypatch.delenv("LAZY_MYSQL_DEFAULT_DATABASE", raising=False)
     monkeypatch.setenv("LAZY_MYSQL_HOST", "env-host")
     monkeypatch.setenv("LAZY_MYSQL_PASSWD", "env-secret")
     monkeypatch.setattr("lazy_mysql.utils.connect.mysql.connector.connect", fake_connect)

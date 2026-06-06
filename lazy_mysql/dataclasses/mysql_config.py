@@ -15,15 +15,14 @@ class MySQLConfig(BaseModel):
     _ENV_USER: ClassVar[str] = "LAZY_MYSQL_USER"
     _ENV_PASSWD: ClassVar[str] = "LAZY_MYSQL_PASSWD"
     _ENV_DATABASE: ClassVar[str] = "LAZY_MYSQL_DATABASE"
-    _ENV_DEFAULT_DATABASE: ClassVar[str] = "LAZY_MYSQL_DEFAULT_DATABASE"
 
     host: str | None = None
     port: int | None = None
     user: str | None = None
     passwd: str | None = None
-    default_database: str | None = None
+    database: str | None = None
 
-    @field_validator("host", "user", "passwd", "default_database", mode="before")
+    @field_validator("host", "user", "passwd", "database", mode="before")
     @classmethod
     def _empty_str_to_none(cls, v: Any) -> Any:
         if v == "":
@@ -57,7 +56,7 @@ class MySQLConfig(BaseModel):
             "port": _get(cls._ENV_PORT),
             "user": _get(cls._ENV_USER),
             "passwd": _get(cls._ENV_PASSWD),
-            "default_database": _get(cls._ENV_DATABASE) or _get(cls._ENV_DEFAULT_DATABASE),
+            "database": _get(cls._ENV_DATABASE),
         }
 
     @classmethod
@@ -68,7 +67,7 @@ class MySQLConfig(BaseModel):
         return None
 
     @classmethod
-    def from_env(cls, *, host=None, port=None, user=None, passwd=None, default_database=None):
+    def from_env(cls, *, host=None, port=None, user=None, passwd=None, database=None):
         """从系统环境变量读取MySQL配置；显式传入的字段优先级更高，空值不会覆盖已有值。"""
         env = cls._read_env()
 
@@ -77,7 +76,7 @@ class MySQLConfig(BaseModel):
             port=cls._first_non_empty(port, env["port"]),
             user=cls._first_non_empty(user, env["user"]),
             passwd=cls._first_non_empty(passwd, env["passwd"]),
-            default_database=cls._first_non_empty(default_database, env["default_database"]),
+            database=cls._first_non_empty(database, env["database"]),
         )
 
     @classmethod
@@ -86,7 +85,7 @@ class MySQLConfig(BaseModel):
         return cls.resolve(sql_config)
 
     @classmethod
-    def resolve(cls, sql_config=None, *, host=None, port=None, user=None, passwd=None, default_database=None):
+    def resolve(cls, sql_config=None, *, host=None, port=None, user=None, passwd=None, database=None):
         """
         统一解析配置来源，优先级：显式参数 > 字典/配置对象 > 环境变量。
 
@@ -96,7 +95,7 @@ class MySQLConfig(BaseModel):
         base_port = None
         base_user = None
         base_passwd = None
-        base_default_database = None
+        base_database = None
 
         config_dict = None
         if isinstance(sql_config, dict):
@@ -106,33 +105,30 @@ class MySQLConfig(BaseModel):
             base_port = getattr(sql_config, "port", None)
             base_user = getattr(sql_config, "user", None)
             base_passwd = getattr(sql_config, "passwd", None)
-            base_default_database = getattr(sql_config, "default_database", None)
+            base_database = getattr(sql_config, "database", None)
 
         if config_dict is not None:
-            if "database" in config_dict and "default_database" not in config_dict:
-                config_dict["default_database"] = config_dict.pop("database")
-
             base_host = cls._first_non_empty(base_host, config_dict.get("host"))
             base_port = cls._first_non_empty(base_port, config_dict.get("port"))
             base_user = cls._first_non_empty(base_user, config_dict.get("user"))
             base_passwd = cls._first_non_empty(base_passwd, config_dict.get("passwd"))
-            base_default_database = cls._first_non_empty(
-                base_default_database,
-                config_dict.get("default_database"),
+            base_database = cls._first_non_empty(
+                base_database,
+                config_dict.get("database"),
             )
 
         merged_host = cls._first_non_empty(host, base_host)
         merged_port = cls._first_non_empty(port, base_port)
         merged_user = cls._first_non_empty(user, base_user)
         merged_passwd = cls._first_non_empty(passwd, base_passwd)
-        merged_default_database = cls._first_non_empty(default_database, base_default_database)
+        merged_database = cls._first_non_empty(database, base_database)
 
         return cls.from_env(
             host=merged_host,
             port=merged_port,
             user=merged_user,
             passwd=merged_passwd,
-            default_database=merged_default_database,
+            database=merged_database,
         )
 # 默认配置
 DEFAULT_MYSQL_CONFIG = MySQLConfig.resolve()
