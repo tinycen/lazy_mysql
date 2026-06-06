@@ -143,7 +143,8 @@ executor.commit_close()
 - [SELECT 查询操作](doc/SELECT.md) - 智能查询构建、复杂条件、多表关联、结果格式化
 
 ### 💾 数据修改
-- [INSERT 插入操作](doc/INSERT.md) - 批量插入、Upsert、大数据优化、重复处理
+- [INSERT 插入操作](doc/INSERT.md) - 批量插入、大数据优化、重复处理
+- [UPSERT 插入或更新](doc/UPSERT.md) - 存在则更新、不存在则插入
 - [UPDATE 更新操作](doc/UPDATE.md) - 条件更新、批量更新、SQL表达式、性能优化
 - [DELETE 删除操作](doc/DELETE.md) - 安全删除、条件组合、错误处理、调试技巧
 

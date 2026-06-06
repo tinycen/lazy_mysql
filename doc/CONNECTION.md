@@ -323,6 +323,7 @@ pip install --upgrade mysql-connector-python
 ## 相关文档
 
 - [SELECT 查询操作](SELECT.md) - 数据查询
-- [INSERT 插入操作](INSERT.md) - 数据插入  
+- [INSERT 插入操作](INSERT.md) - 数据插入
 - [UPDATE 更新操作](UPDATE.md) - 数据更新
 - [DELETE 删除操作](DELETE.md) - 数据删除
+- [UPSERT 插入或更新](UPSERT.md) - 存在则更新、不存在则插入
