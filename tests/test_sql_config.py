@@ -1,4 +1,5 @@
 from lazy_mysql import MySQLConfig, SQLExecutor
+from lazy_mysql.utils.connect import connection
 
 
 def test_mysql_config_from_env(monkeypatch):
@@ -18,7 +19,6 @@ def test_mysql_config_from_env(monkeypatch):
 
 
 def test_mysql_config_from_env_supports_legacy_password_and_database_names(monkeypatch):
-    monkeypatch.delenv("LAZY_MYSQL_PASSWD", raising=False)
     monkeypatch.delenv("LAZY_MYSQL_DATABASE", raising=False)
     monkeypatch.setenv("LAZY_MYSQL_PASSWD", "legacy_secret")
     monkeypatch.setenv("LAZY_MYSQL_DEFAULT_DATABASE", "legacy_db")
@@ -66,6 +66,21 @@ def test_mysql_config_resolve_accepts_dict_aliases():
     assert config.host == "alias-host"
     assert config.passwd == "alias-secret"
     assert config.default_database == "alias-db"
+
+
+def test_mysql_config_resolve_dict_fills_missing_values_from_env(monkeypatch):
+    monkeypatch.setenv("LAZY_MYSQL_HOST", "env-host")
+    monkeypatch.setenv("LAZY_MYSQL_PORT", "3310")
+    monkeypatch.setenv("LAZY_MYSQL_USER", "env-user")
+    monkeypatch.setenv("LAZY_MYSQL_PASSWD", "env-secret")
+
+    config = MySQLConfig.resolve({"database": "param-db"})
+
+    assert config.host == "env-host"
+    assert config.port == 3310
+    assert config.user == "env-user"
+    assert config.passwd == "env-secret"
+    assert config.default_database == "param-db"
 
 
 def test_sql_executor_accepts_optional_sql_config(monkeypatch):
@@ -128,3 +143,45 @@ def test_sql_executor_accepts_dict_sql_config(monkeypatch):
     assert captured["sql_config"].host == "executor-dict-host"
     assert captured["sql_config"].passwd == "executor-secret"
     assert captured["sql_config"].default_database == "executor-db"
+
+
+def test_connection_does_not_force_default_database(monkeypatch):
+    captured = {}
+
+    class DummyConnection:
+        def cursor(self, buffered=True, dictionary=False):
+            return object()
+
+    def fake_connect(**kwargs):
+        captured.update(kwargs)
+        return DummyConnection()
+
+    monkeypatch.delenv("LAZY_MYSQL_DATABASE", raising=False)
+    monkeypatch.delenv("LAZY_MYSQL_DEFAULT_DATABASE", raising=False)
+    monkeypatch.setenv("LAZY_MYSQL_HOST", "env-host")
+    monkeypatch.setenv("LAZY_MYSQL_PASSWD", "env-secret")
+    monkeypatch.setattr("lazy_mysql.utils.connect.mysql.connector.connect", fake_connect)
+
+    connection(max_retries=0)
+
+    assert captured["host"] == "env-host"
+    assert captured["password"] == "env-secret"
+    assert captured["database"] is None
+
+
+def test_connection_database_argument_overrides_config(monkeypatch):
+    captured = {}
+
+    class DummyConnection:
+        def cursor(self, buffered=True, dictionary=False):
+            return object()
+
+    def fake_connect(**kwargs):
+        captured.update(kwargs)
+        return DummyConnection()
+
+    monkeypatch.setattr("lazy_mysql.utils.connect.mysql.connector.connect", fake_connect)
+
+    connection({"database": "config-db"}, database="argument-db", max_retries=0)
+
+    assert captured["database"] == "argument-db"

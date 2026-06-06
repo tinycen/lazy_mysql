@@ -50,6 +50,9 @@ executor = SQLExecutor(config, dict_cursor=True)
 # 不传入配置时自动从环境变量读取：
 # LAZY_MYSQL_HOST / LAZY_MYSQL_PORT / LAZY_MYSQL_USER / LAZY_MYSQL_PASSWD / LAZY_MYSQL_DATABASE
 executor = SQLExecutor()
+
+# 也支持混合配置：host/user/passwd 从环境变量读取，database 由参数指定
+executor = SQLExecutor(database='another_db')
 ```
 ### 2. 智能查询操作
 

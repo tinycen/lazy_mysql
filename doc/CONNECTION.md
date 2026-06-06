@@ -14,7 +14,7 @@ config = MySQLConfig(
     host='localhost',           # 数据库主机地址（必填）
     user='your_username',     # 数据库用户名（必填）
     passwd='your_password',   # 数据库密码（必填）
-    default_database='your_database'  # 默认数据库名称（选填），默认 "new_schema"
+    default_database='your_database'  # 默认数据库名称（选填）
 )
 
 # 创建执行器实例
@@ -76,6 +76,18 @@ executor = SQLExecutor()
 # 指定数据库并启用字典游标
 executor = SQLExecutor(database='another_db', dict_cursor=True)
 
+```
+
+也支持混合配置：未传入的字段从环境变量读取，显式传入的参数优先级更高。
+
+```python
+from lazy_mysql.executor import SQLExecutor
+
+# host / port / user / passwd 从环境变量读取，database 通过参数指定
+executor = SQLExecutor(database='another_db')
+
+# host / port / user / passwd 从环境变量读取，database 通过字典指定
+executor = SQLExecutor({'database': 'another_db'})
 ```
 
 

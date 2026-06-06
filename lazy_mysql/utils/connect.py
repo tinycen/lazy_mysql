@@ -20,11 +20,7 @@ def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
     """
     sql_config = MySQLConfig.resolve(sql_config)
 
-    if database is not None:
-        database = database
-    elif not hasattr(sql_config, 'default_database') or sql_config.default_database is None:
-        database = "new_schema"
-    else:
+    if database is None and hasattr(sql_config, 'default_database'):
         database = sql_config.default_database
     
     retry_count = 0

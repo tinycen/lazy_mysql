@@ -49,12 +49,19 @@ class MySQLConfig:
 
     @classmethod
     def from_dict(cls, sql_config):
-        """从字典读取MySQL配置，兼容database别名。"""
+        """从字典读取MySQL配置，未提供的字段从环境变量补齐。"""
+        env_config = cls.from_env()
         config = dict(sql_config)
         if "database" in config and "default_database" not in config:
             config["default_database"] = config.pop("database")
 
-        return cls(**config)
+        return cls(
+            host=config.get("host", env_config.host),
+            port=config.get("port", env_config.port),
+            user=config.get("user", env_config.user),
+            passwd=config.get("passwd", env_config.passwd),
+            default_database=config.get("default_database", env_config.default_database),
+        )
 
     @classmethod
     def resolve(cls, sql_config=None):
