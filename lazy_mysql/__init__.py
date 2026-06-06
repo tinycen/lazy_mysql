@@ -1,4 +1,4 @@
-from .sql_config import MySQLConfig, DEFAULT_MYSQL_CONFIG
+from .dataclasses.mysql_config import MySQLConfig, DEFAULT_MYSQL_CONFIG
 from .executor import SQLExecutor
 from .utils import insert, upsert, select, update, delete, merge_update_lists
 from .tools import NDayInterval, add_limit, load_sql

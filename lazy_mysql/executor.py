@@ -1,4 +1,5 @@
 from typing import Any
+from .dataclasses.mysql_config import MySQLConfig
 from .utils.connect import connection
 from .dataclasses.fetch_config import FetchConfig
 
@@ -16,11 +17,11 @@ class SQLExecutor :
     mydb: Any
     mycursor: Any
 
-    def __init__( self , sql_config ,database=None,dict_cursor=False) :
-        self.sql_config = sql_config
+    def __init__( self , sql_config=None ,database=None,dict_cursor=False) :
+        self.sql_config = MySQLConfig.resolve(sql_config)
         self.database = database
         self.dict_cursor = dict_cursor
-        self.mydb , self.mycursor = connection( sql_config,database,dict_cursor=dict_cursor )
+        self.mydb , self.mycursor = connection( self.sql_config,database,dict_cursor=dict_cursor )
 
     # 读取sql文件
     def read_sql( self , sql_path ) :

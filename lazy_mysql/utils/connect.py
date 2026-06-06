@@ -1,21 +1,25 @@
 import time
 import mysql.connector
 from mysql.connector.errors import ConnectionTimeoutError
+from ..dataclasses.mysql_config import MySQLConfig
 
 # 获取数据库连接和游标
-def connection(sql_config, database=None,dict_cursor=False, max_retries=5,
+def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
     retry_delay_base=5):
     """
     建立数据库连接并返回连接对象和游标对象
 
     Args:
-        sql_config (object): 数据库配置对象，包含host, port, user, passwd, default_database等属性
+        sql_config (object, optional): 数据库配置对象，包含host, port, user, passwd, default_database等属性。
+            传入None时自动从系统环境变量读取配置。
         database (str, optional): 数据库名称，database参数优先使用，默认使用 sql_config.default_database
         max_retries (int, optional): 最大重试次数，默认为5次
         retry_delay_base (int, optional): 重试延迟基数（秒），默认为5秒，第n次重试延迟为 retry_delay_base * n 秒
     Returns:
         tuple: (数据库连接对象, 游标对象)
     """
+    sql_config = MySQLConfig.resolve(sql_config)
+
     if database is not None:
         database = database
     elif not hasattr(sql_config, 'default_database') or sql_config.default_database is None:
