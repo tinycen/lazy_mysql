@@ -5,7 +5,7 @@ def test_mysql_config_from_env(monkeypatch):
     monkeypatch.setenv("LAZY_MYSQL_HOST", "db.example.com")
     monkeypatch.setenv("LAZY_MYSQL_PORT", "3307")
     monkeypatch.setenv("LAZY_MYSQL_USER", "app_user")
-    monkeypatch.setenv("LAZY_MYSQL_PASSWORD", "secret")
+    monkeypatch.setenv("LAZY_MYSQL_PASSWD", "secret")
     monkeypatch.setenv("LAZY_MYSQL_DATABASE", "app_db")
 
     config = MySQLConfig.from_env()
@@ -18,7 +18,7 @@ def test_mysql_config_from_env(monkeypatch):
 
 
 def test_mysql_config_from_env_supports_legacy_password_and_database_names(monkeypatch):
-    monkeypatch.delenv("LAZY_MYSQL_PASSWORD", raising=False)
+    monkeypatch.delenv("LAZY_MYSQL_PASSWD", raising=False)
     monkeypatch.delenv("LAZY_MYSQL_DATABASE", raising=False)
     monkeypatch.setenv("LAZY_MYSQL_PASSWD", "legacy_secret")
     monkeypatch.setenv("LAZY_MYSQL_DEFAULT_DATABASE", "legacy_db")

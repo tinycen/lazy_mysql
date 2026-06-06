@@ -19,15 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         # 拉取所有历史记录，以便能比较不同 tag 之间的差异
         fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v6
       with:
-        python-version: '3.10'
+        python-version: '3.11'
 
     # 构建、测试、打包 ...
     - name: Install dependencies
@@ -108,7 +108,7 @@ jobs:
           --arg prompt "$PROMPT" \
           --arg commits "$CHANGELOG_DATA" \
           '{
-            "model": "openai/gpt-4o",
+            "model": "openai/gpt-4.1-mini",
             "messages": [
               {
                 "role": "system",

@@ -38,7 +38,7 @@ class MySQLConfig:
         """从系统环境变量读取MySQL配置，未设置的字段沿用默认值。"""
         passwd = os.getenv(cls.ENV_PASSWD, '')
         if not passwd:
-            raise ValueError("LAZY_MYSQL_PASSWORD environment variable is not set")
+            raise ValueError("LAZY_MYSQL_PASSWD environment variable is not set")
 
         return cls(
             host=os.getenv(cls.ENV_HOST, 'localhost'),
