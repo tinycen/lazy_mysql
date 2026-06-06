@@ -511,8 +511,8 @@ class SQLExecutor :
             
         return { "success" : success , "result" : result , "message" : message }
 
-    # 支持复杂查询的执行方法
-    def execute_query(self, sql, params=None, fetch_config: FetchConfig | dict | None = None, self_close=False):
+    # 支持复杂查询的执行方法（手写SQL查询）
+    def query(self, sql, params=None, fetch_config: FetchConfig | dict | None = None, self_close=False):
         """
         执行自定义SQL查询
         :param sql: SQL语句
@@ -579,11 +579,13 @@ class SQLExecutor :
             config_dict.update(fetch_config)
             fetch_config = FetchConfig(**config_dict)  # pyright: ignore[reportArgumentType]
 
+        # 从 FetchConfig 中提取具体配置项
         fetch_mode = fetch_config.fetch_mode
         output_format = fetch_config.output_format
         show_count = fetch_config.show_count
         data_label = fetch_config.data_label or []
 
+        # 调用底层 fetch_format 执行查询并格式化结果
         result = self.fetch_format(sql, fetch_mode, output_format, show_count, data_label, params, self_close)
         return result
 
