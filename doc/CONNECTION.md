@@ -67,18 +67,7 @@ executor = SQLExecutor(config, database='another_db', dict_cursor=True)
 | `LAZY_MYSQL_PASSWD` | 密码 | 空字符串 |
 | `LAZY_MYSQL_DATABASE` | 默认数据库 | `None` |
 
-```python
-from lazy_mysql.executor import SQLExecutor
-
-# 自动从环境变量读取配置
-executor = SQLExecutor()
-
-# 指定数据库并启用字典游标
-executor = SQLExecutor(database='another_db', dict_cursor=True)
-
-```
-
-也支持混合配置：未传入的字段从环境变量读取，显式传入的参数优先级更高。
+也支持混合配置：未传入的字段从环境变量读取，显式传入的参数优先级更高。详见下方[配置参数优先级](#配置参数优先级)章节。
 
 ```python
 from lazy_mysql.executor import SQLExecutor
@@ -92,6 +81,55 @@ executor = SQLExecutor({'database': 'another_db'})
 
 
 **注意**：目前 `MySQLConfig` 仅支持 `host`、`user`、`passwd`、`port` 和 `database` 参数。其他高级连接参数（如 `charset`、`collation`、`autocommit`、`time_zone` 等）需要通过底层连接对象进行配置。
+
+## 配置参数优先级
+
+数据库连接参数遵循以下优先级规则（高 → 低）：
+
+```
+SQLExecutor 显式 database 参数 > MySQLConfig 显式参数 / 字典配置 > 环境变量
+```
+
+具体说明：
+
+| 优先级 | 来源 | 说明 |
+|--------|------|------|
+| 1（最高） | `SQLExecutor(database='xxx')` | 创建执行器时传入的 `database` 参数，优先级最高 |
+| 2 | `MySQLConfig` 显式参数 | `MySQLConfig(host='...', database='...')` 中的字段值 |
+| 3 | 字典配置 | 传入 `SQLExecutor({'host': '...', 'database': '...'})` 的字典值 |
+| 4（最低） | 环境变量 | `LAZY_MYSQL_HOST`、`LAZY_MYSQL_DATABASE` 等系统环境变量 |
+
+**重要规则**：空值（`None` 或 `''`）不会覆盖已有值。即如果高优先级来源提供了有效值，低优先级的空值不会将其覆盖；反之，如果高优先级来源为空，则向下查找第一个非空值。
+
+### 优先级示例
+
+```python
+import os
+from lazy_mysql import SQLExecutor, MySQLConfig
+
+# 示例1：显式参数覆盖一切
+os.environ['LAZY_MYSQL_HOST'] = 'env_host'
+config = MySQLConfig(host='config_host', database='config_db')
+executor = SQLExecutor(config, database='explicit_db')
+# 最终使用的数据库：explicit_db（SQLExecutor 的 database 参数优先级最高）
+
+# 示例2：配置对象覆盖环境变量
+os.environ['LAZY_MYSQL_HOST'] = 'env_host'
+config = MySQLConfig(host='config_host')
+executor = SQLExecutor(config)
+# 最终使用的主机：config_host（MySQLConfig 显式参数覆盖环境变量）
+
+# 示例3：字典配置覆盖环境变量
+os.environ['LAZY_MYSQL_HOST'] = 'env_host'
+executor = SQLExecutor({'host': 'dict_host'})
+# 最终使用的主机：dict_host（字典配置覆盖环境变量）
+
+# 示例4：空值不覆盖已有值
+os.environ['LAZY_MYSQL_HOST'] = 'env_host'
+config = MySQLConfig(host='config_host')
+executor = SQLExecutor(config, database=None)
+# database 为 None，不会覆盖 config 中的值；最终使用 config_db
+```
 
 ## 高级连接配置
 
@@ -280,52 +318,6 @@ print(f"当前 MySQL 连接器版本: {mysql.connector.__version__}")
 ```
 警告: MySQL连接器版本8.0.33已过时，建议升级到9.4.0或更高版本
 pip install --upgrade mysql-connector-python
-```
-
-## 完整示例
-
-```python
-from lazy_mysql.executor import SQLExecutor
-from lazy_mysql.sql_config import MySQLConfig
-import sys
-
-def init_database_connection():
-    """初始化数据库连接"""
-    try:
-        # 创建配置
-        config = MySQLConfig(
-            host='localhost',
-            user='your_username',
-            passwd='your_password',
-            database='your_database'
-        )
-        
-        # 创建执行器
-        executor = SQLExecutor(config)
-        
-        # 测试连接
-        test_result = executor.execute("SELECT VERSION()", fetch=True)
-        print(f"数据库连接成功！版本: {test_result[0]['VERSION()']}")
-        
-        return executor
-        
-    except Exception as e:
-        print(f"数据库连接失败: {e}")
-        sys.exit(1)
-
-# 使用示例
-if __name__ == "__main__":
-    executor = init_database_connection()
-    
-    try:
-        # 执行数据库操作
-        users = executor.select('users', ['id', 'username', 'email'])
-        print(f"找到 {len(users)} 个用户")
-        
-    finally:
-        # 确保关闭连接
-        executor.close()
-        print("数据库连接已关闭")
 ```
 
 ## 相关文档
