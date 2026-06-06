@@ -35,13 +35,13 @@ config = MySQLConfig(
     host='localhost',
     user='your_username',
     passwd='your_password',
-    default_database='your_database'
+    database='your_database'
 )
 
 # 创建执行器实例
 executor = SQLExecutor(config)
 
-# 指定数据库（覆盖配置中的 default_database）
+# 指定数据库（覆盖配置中的 database）
 executor = SQLExecutor(config, database='another_db')
 
 # 使用字典游标返回结果

@@ -14,13 +14,13 @@ config = MySQLConfig(
     host='localhost',           # 数据库主机地址（必填）
     user='your_username',     # 数据库用户名（必填）
     passwd='your_password',   # 数据库密码（必填）
-    default_database='your_database'  # 默认数据库名称（选填）
+    database='your_database'  # 默认数据库名称（选填）
 )
 
 # 创建执行器实例
 executor = SQLExecutor(config)
 
-# 指定数据库（覆盖配置中的 default_database）
+# 指定数据库（覆盖配置中的 database）
 executor = SQLExecutor(config, database='another_db')
 
 # 使用字典游标返回结果
@@ -65,7 +65,7 @@ executor = SQLExecutor(config, database='another_db', dict_cursor=True)
 | `LAZY_MYSQL_PORT` | 数据库端口 | `3306` |
 | `LAZY_MYSQL_USER` | 用户名 | `root` |
 | `LAZY_MYSQL_PASSWD` | 密码 | 空字符串 |
-| `LAZY_MYSQL_DATABASE` / `LAZY_MYSQL_DEFAULT_DATABASE` | 默认数据库 | `None` |
+| `LAZY_MYSQL_DATABASE` | 默认数据库 | `None` |
 
 ```python
 from lazy_mysql.executor import SQLExecutor
@@ -91,7 +91,7 @@ executor = SQLExecutor({'database': 'another_db'})
 ```
 
 
-**注意**：目前 `MySQLConfig` 仅支持 `host`、`user`、`passwd`、`port` 和 `default_database` 参数。其他高级连接参数（如 `charset`、`collation`、`autocommit`、`time_zone` 等）需要通过底层连接对象进行配置。
+**注意**：目前 `MySQLConfig` 仅支持 `host`、`user`、`passwd`、`port` 和 `database` 参数。其他高级连接参数（如 `charset`、`collation`、`autocommit`、`time_zone` 等）需要通过底层连接对象进行配置。
 
 ## 高级连接配置
 
@@ -117,7 +117,7 @@ mydb, mycursor = connection(
 | 参数名 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | `sql_config` | object | - | 数据库配置对象 |
-| `database` | str | None | 指定数据库（优先级高于配置中的default_database） |
+| `database` | str | None | 指定数据库（优先级高于配置中的 database） |
 | `dict_cursor` | bool | False | 是否使用字典游标 |
 | `max_retries` | int | 5 | 连接失败时的最大重试次数 |
 | `retry_delay_base` | int | 5 | 重试延迟基数，第n次重试延迟为 retry_delay_base * n 秒 |
@@ -153,7 +153,7 @@ config = MySQLConfig(
     host='your_host',
     user='your_user',
     passwd='your_password',
-    default_database='your_database'
+    database='your_database'
 )
 
 # 创建执行器，指定数据库并启用字典游标
@@ -196,8 +196,8 @@ from lazy_mysql.sql_config import MySQLConfig
 config = MySQLConfig(
     host='localhost',
     user='your_username',
-    passwd='your_password', 
-    default_database='your_database'
+    passwd='your_password',
+    database='your_database'
 )
 
 # 使用 try-finally 确保连接关闭
@@ -230,7 +230,7 @@ class DatabaseManager:
             self.executor.close()
 
 # 使用方式
-config = MySQLConfig(host='localhost', user='user', passwd='pass', default_database='db')
+config = MySQLConfig(host='localhost', user='user', passwd='pass', database='db')
 
 with DatabaseManager(config) as executor:
     # 在此区域内使用 executor
@@ -250,7 +250,7 @@ config = MySQLConfig(
     host=os.getenv('DB_HOST', 'localhost'),
     user=os.getenv('DB_USER', 'root'),
     passwd=os.getenv('DB_PASSWORD', ''),
-    default_database=os.getenv('DB_NAME', 'test_db'),
+    database=os.getenv('DB_NAME', 'test_db'),
     port=int(os.getenv('DB_PORT', '3306'))
 )
 
@@ -297,7 +297,7 @@ def init_database_connection():
             host='localhost',
             user='your_username',
             passwd='your_password',
-            default_database='your_database'
+            database='your_database'
         )
         
         # 创建执行器
