@@ -527,18 +527,31 @@ class SQLExecutor :
                - "oneTuple": 获取单条记录（元组格式）
                - "one": 获取单个值（第一个字段的值）
 
-            2. output_format (str): 输出格式，仅当fetch_mode="all"时有效
-               - "df_dict" (默认): 返回字典列表
-               - "df": 返回pandas DataFrame
-               - "list_1": 返回扁平化的列表
-               - "": 返回原始元组列表
+            2. output_format (str): 输出格式，仅当fetch_mode="all" 或 fetch_mode="oneTuple"时有效
+               - "" (默认): 返回原始元组列表（all）或元组（oneTuple）
+               - "list_1": 返回扁平化的列表（提取每行的第一个字段，仅all）
+               - "df": 返回pandas DataFrame（仅all）
+               - "df_dict": 返回字典列表（仅all）
+               - "dict": 返回字典（仅oneTuple，需data_label）
 
             3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
+               当output_format为"df"/"df_dict"/"dict"时不能为空
 
             4. show_count (bool): 是否显示查询结果数量，默认为False
+               为True时返回(数据, 总数)元组，仅fetch_mode="all"时有效
+
+            返回值示例（假设查询结果包含id/name/email三列）：
+
+            fetch_mode="all", output_format=""        -> [(1,'张三','z@e'), (2,'李四','l@e')]
+            fetch_mode="all", output_format="list_1"  -> [1, 2]
+            fetch_mode="all", output_format="df"      -> pandas DataFrame
+            fetch_mode="all", output_format="df_dict" -> [{'id':1,'name':'张三',...}, ...]
+            fetch_mode="all", show_count=True         -> (数据, 数量)
+            fetch_mode="oneTuple", output_format=""   -> (1, '张三', 'z@e')
+            fetch_mode="oneTuple", output_format="dict" -> {'id':1, 'name':'张三',...}
+            fetch_mode="one"                          -> 1
 
             示例（使用字典，兼容旧方式）：
-                # 获取所有记录并返回DataFrame
                 fetch_config = {
                     "fetch_mode": "all",
                     "output_format": "df",
@@ -548,8 +561,6 @@ class SQLExecutor :
 
             示例（使用 FetchConfig 模型）：
                 from lazy_mysql.dataclasses import FetchConfig
-
-                # 获取所有记录并返回DataFrame
                 fetch_config = FetchConfig(
                     fetch_mode="all",
                     output_format="df",

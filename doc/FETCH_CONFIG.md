@@ -38,6 +38,132 @@
 - 默认值: `False`
 - 如果为 `True`，返回 `(数据, 总数)` 元组
 
+## 返回值示例
+
+假设查询结果如下：
+
+```
++----+--------+----------+
+| id | name   | email    |
++----+--------+----------+
+| 1  | 张三   | zhang@e  |
+| 2  | 李四   | li@e     |
++----+--------+----------+
+```
+
+### fetch_mode="all"
+
+#### output_format=""（默认）
+
+```python
+fetch_config = FetchConfig(
+    fetch_mode="all",
+    output_format=""
+)
+# 返回值
+[(1, '张三', 'zhang@e'), (2, '李四', 'li@e')]
+```
+
+#### output_format="list_1"
+
+```python
+fetch_config = FetchConfig(
+    fetch_mode="all",
+    output_format="list_1"
+)
+# 返回值（提取每行第一个字段）
+[1, 2]
+```
+
+#### output_format="df"
+
+```python
+fetch_config = FetchConfig(
+    fetch_mode="all",
+    output_format="df",
+    data_label=["id", "name", "email"]
+)
+# 返回值（pandas DataFrame）
+#    id name   email
+# 0   1 张三  zhang@e
+# 1   2 李四    li@e
+```
+
+> 注意：`output_format="df"` 或 `"df_dict"` 时，`data_label` 不能为空，否则抛出 `ValueError`。
+
+#### output_format="df_dict"
+
+```python
+fetch_config = FetchConfig(
+    fetch_mode="all",
+    output_format="df_dict",
+    data_label=["id", "name", "email"]
+)
+# 返回值（字典列表）
+[
+    {"id": 1, "name": "张三", "email": "zhang@e"},
+    {"id": 2, "name": "李四", "email": "li@e"}
+]
+```
+
+#### show_count=True
+
+```python
+fetch_config = FetchConfig(
+    fetch_mode="all",
+    output_format="df_dict",
+    data_label=["id", "name", "email"],
+    show_count=True
+)
+# 返回值（元组：数据 + 数量）
+(
+    [
+        {"id": 1, "name": "张三", "email": "zhang@e"},
+        {"id": 2, "name": "李四", "email": "li@e"}
+    ],
+    2
+)
+```
+
+### fetch_mode="oneTuple"
+
+#### output_format=""（默认）
+
+```python
+fetch_config = FetchConfig(
+    fetch_mode="oneTuple",
+    output_format=""
+)
+# 返回值（单条元组）
+(1, '张三', 'zhang@e')
+```
+
+#### output_format="dict"
+
+```python
+fetch_config = FetchConfig(
+    fetch_mode="oneTuple",
+    output_format="dict",
+    data_label=["id", "name", "email"]
+)
+# 返回值（字典）
+{"id": 1, "name": "张三", "email": "zhang@e"}
+```
+
+> 注意：`output_format="dict"` 时，`data_label` 不能为空且长度必须与字段数一致，否则抛出 `ValueError`。
+
+### fetch_mode="one"
+
+```python
+fetch_config = FetchConfig(
+    fetch_mode="one"
+)
+# 返回值（第一个字段的值）
+1
+```
+
+> `fetch_mode="one"` 时，`output_format` 无效。
+
 ## 使用示例
 
 ### 使用 FetchConfig 模型（推荐）
@@ -91,42 +217,4 @@ fetch_config = {
 fetch_config = {
     "fetch_mode": "one"
 }
-```
-
-## 完整示例
-
-```python
-from lazy_mysql import SQLExecutor, FetchConfig
-
-# 初始化执行器
-executor = SQLExecutor(host="localhost", user="root", password="123456", database="test")
-
-# 查询所有用户并返回 DataFrame
-fetch_config = FetchConfig(
-    fetch_mode="all",
-    output_format="df",
-    data_label=["用户ID", "用户名", "邮箱"],
-    show_count=True
-)
-result, count = executor.select(
-    table_names="users",
-    fields=["id", "name", "email"],
-    fetch_config=fetch_config
-)
-print(f"共查询到 {count} 条记录")
-print(result)
-
-# 查询单个用户
-fetch_config = FetchConfig(
-    fetch_mode="oneTuple",
-    output_format="dict",
-    data_label=["id", "name", "email"]
-)
-user = executor.select(
-    table_names="users",
-    fields=["id", "name", "email"],
-    conditions={"id": 1},
-    fetch_config=fetch_config
-)
-print(user)  # {'id': 1, 'name': '张三', 'email': 'zhangsan@example.com'}
 ```
