@@ -36,15 +36,11 @@ class MySQLConfig:
     @classmethod
     def from_env(cls):
         """从系统环境变量读取MySQL配置，未设置的字段沿用默认值。"""
-        passwd = os.getenv(cls.ENV_PASSWD, '')
-        if not passwd:
-            raise ValueError("LAZY_MYSQL_PASSWD environment variable is not set")
-
         return cls(
             host=os.getenv(cls.ENV_HOST, 'localhost'),
             port=int(os.getenv(cls.ENV_PORT, 3306)),  # pyright: ignore[reportArgumentType]
             user=os.getenv(cls.ENV_USER, 'root'),
-            passwd=passwd,
+            passwd=os.getenv(cls.ENV_PASSWD, ''),
             default_database=os.getenv(
                 cls.ENV_DATABASE,
                 os.getenv(cls.ENV_DEFAULT_DATABASE)
@@ -53,12 +49,11 @@ class MySQLConfig:
 
     @classmethod
     def from_dict(cls, sql_config):
-        """从字典读取MySQL配置，兼容password/database别名。"""
+        """从字典读取MySQL配置，兼容database别名。"""
         config = dict(sql_config)
-        if "password" in config and "passwd" not in config:
-            config["passwd"] = config.pop("password")
         if "database" in config and "default_database" not in config:
             config["default_database"] = config.pop("database")
+
         return cls(**config)
 
     @classmethod
@@ -69,10 +64,6 @@ class MySQLConfig:
         if isinstance(sql_config, dict):
             return cls.from_dict(sql_config)
         return sql_config
-
-    def __repr__(self):
-        return f"MySQLConfig(host='{self.host}', port={self.port}, user='{self.user}', default_database='{self.default_database}')"
-
 
 # 默认配置
 DEFAULT_MYSQL_CONFIG = MySQLConfig()

@@ -31,6 +31,7 @@ def test_mysql_config_from_env_supports_legacy_password_and_database_names(monke
 
 def test_mysql_config_resolve_none_reads_from_env(monkeypatch):
     monkeypatch.setenv("LAZY_MYSQL_HOST", "env-host")
+    monkeypatch.setenv("LAZY_MYSQL_PASSWD", "env-pass")
 
     config = MySQLConfig.resolve(None)
 
@@ -58,7 +59,7 @@ def test_mysql_config_resolve_accepts_dict():
 def test_mysql_config_resolve_accepts_dict_aliases():
     config = MySQLConfig.resolve({
         "host": "alias-host",
-        "password": "alias-secret",
+        "passwd": "alias-secret",
         "database": "alias-db",
     })
 
@@ -85,6 +86,7 @@ def test_sql_executor_accepts_optional_sql_config(monkeypatch):
         return DummyConnection(), DummyCursor()
 
     monkeypatch.setenv("LAZY_MYSQL_HOST", "executor-host")
+    monkeypatch.setenv("LAZY_MYSQL_PASSWD", "executor-pass")
     monkeypatch.setattr("lazy_mysql.executor.connection", fake_connection)
 
     executor = SQLExecutor()
@@ -117,7 +119,7 @@ def test_sql_executor_accepts_dict_sql_config(monkeypatch):
 
     executor = SQLExecutor({
         "host": "executor-dict-host",
-        "password": "executor-secret",
+        "passwd": "executor-secret",
         "database": "executor-db",
     })
     executor.close()

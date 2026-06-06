@@ -2,8 +2,17 @@
 # bash create_tag.sh
 
 # 定义要创建的标签
-TAG_NAME="v0.5.3"
+TAG_NAME="v0.5.4"
 # 请注意，需要同步修改 setup.py 中的 version，否则无法同步到Pypi
+
+# 运行本地测试
+echo "Running local tests..."
+python -m pytest tests/ -v
+if [ $? -ne 0 ]; then
+    echo "Tests failed! Aborting tag creation."
+    exit 1
+fi
+echo "All tests passed!"
 
 # 显示 创建前 3个本地标签
 echo "Before create tag , Latest 3 local tags:"

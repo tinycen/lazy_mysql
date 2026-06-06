@@ -42,7 +42,7 @@ from lazy_mysql.executor import SQLExecutor
 config = {
     'host': 'localhost',
     'user': 'your_username',
-    'password': 'your_password',
+    'passwd': 'your_password',
     'database': 'your_database'
 }
 
