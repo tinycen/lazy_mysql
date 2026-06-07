@@ -158,11 +158,13 @@ fetch_config = FetchConfig(
 fetch_config = FetchConfig(
     fetch_mode="one"
 )
-# 返回值（第一个字段的值）
+# 默认返回值（第一个字段的值）
 1
 ```
 
 > `fetch_mode="one"` 时，`output_format` 无效。
+>
+> 注意：当使用 `dict_cursor=True` 时，返回值为字典（如 `{"id": 1, "name": "张三", "email": "zhang@e"}`），而非单个字段值。
 
 ## 使用示例
 

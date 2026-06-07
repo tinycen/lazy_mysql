@@ -43,6 +43,7 @@ def fetch_format( executor , sql , fetch_mode , output_format = "" , show_count 
             myresult = pd.DataFrame( myresult , columns = data_label )
             if "dict" in output_format :
                 myresult = myresult.to_dict( orient = "records" )
+    
     elif fetch_mode == "oneTuple" :
         myresult = executor.mycursor.fetchone()  # 接收返回结果行,返回结果为 tuple（元组）,如果没有结果,则仅返回 None
         # 新增：支持 output_format == 'dict' 且 myresult/data_label 不为空时，转为 dict
@@ -56,7 +57,10 @@ def fetch_format( executor , sql , fetch_mode , output_format = "" , show_count 
         if result is None:
             myresult = None
         else:
-            myresult = result[ 0 ] if result else None
+            if isinstance(result, dict):
+                myresult = result
+            else:
+                myresult = result[ 0 ] if result else None
             # myresult = result
     else :
         executor.close()
