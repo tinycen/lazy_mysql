@@ -92,13 +92,13 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
             if isinstance(table_names, str) or len(table_names) < 2:
                 raise ValueError("存在JOIN操作时，table_names必须是包含至少两个表名的列表")
             join_type = join_conditions.get("join_type", "JOIN")
-            conditions = join_conditions.get("conditions", [])
-            
+            join_conds = join_conditions.get("conditions", [])
+
             # 为每个额外的表添加JOIN子句
             for i, join_table in enumerate(table_names[1:], start=1):
                 # 如果提供了具体的JOIN条件，则使用它
-                if conditions and len(conditions) >= 3:
-                    field1, operator, field2 = conditions[0], conditions[1], conditions[2]
+                if join_conds and len(join_conds) >= 3:
+                    field1, operator, field2 = join_conds[0], join_conds[1], join_conds[2]
                     # 如果字段名没有表前缀，添加主表前缀
                     if '.' not in field1:
                         field1 = f"{main_table}.{field1}"
