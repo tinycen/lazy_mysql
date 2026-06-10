@@ -181,7 +181,11 @@ executor.execute("SET autocommit = 0")
 
 ### 自动重试
 
-连接失败时，系统会自动重试，默认配置：
+以下连接失败时会自动重试：
+- **连接超时** (`ConnectionTimeoutError`)
+- **无法连接** (`InterfaceError`，如 DNS 解析失败、网络不可达等)
+
+默认重试配置：
 - 最大重试次数：5次
 - 重试延迟：递增延迟（5秒、10秒、15秒...）
 
