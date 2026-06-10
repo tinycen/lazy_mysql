@@ -1,6 +1,6 @@
 import time
 import mysql.connector
-from mysql.connector.errors import ConnectionTimeoutError
+from mysql.connector.errors import ConnectionTimeoutError, InterfaceError
 from ..dataclasses.mysql_config import MySQLConfig
 
 def _check_connector_version():
@@ -71,12 +71,12 @@ def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
             # 重新抛出原始的TypeError，保留详细错误信息
             raise TypeError(f"数据库连接参数类型错误: {str(e)}") from e
                 
-        except ConnectionTimeoutError as e:
+        except (ConnectionTimeoutError, InterfaceError) as e:
             last_exception = e
             if retry_count < max_retries:
                 retry_count += 1
                 delay = retry_delay_base * retry_count
-                print(f"MySQL 连接超时，正在进行第 {retry_count}/{max_retries} 次重试，等待 {delay} 秒...")
+                print(f"MySQL 连接失败，正在进行第 {retry_count}/{max_retries} 次重试，等待 {delay} 秒...")
                 time.sleep(delay)
             else:
                 break
