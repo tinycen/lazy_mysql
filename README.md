@@ -142,21 +142,22 @@ executor.commit_close()
 ### 📚 详细文档
 
 ### 🔗 连接与配置
-- [数据库连接初始化](doc/CONNECTION.md) - 连接配置、错误处理、重试机制、最佳实践
-- [WHERE 条件构造](doc/CONDITIONS.md) - 等值条件、比较运算符、空值判断、日期筛选
+- [数据库连接初始化](docs/CONNECTION.md) - 连接配置、错误处理、重试机制、最佳实践
+- [WHERE 条件构造](docs/CONDITIONS.md) - 等值条件、比较运算符、空值判断、日期筛选
 
 ### 🔍 查询操作
-- [SELECT 查询操作](doc/SELECT.md) - 智能查询构建、复杂条件、多表关联、结果格式化
-- [自定义 SQL 查询](doc/QUERY.md) - 手写 SQL 执行、子查询、UNION、窗口函数
+- [SELECT 查询操作](docs/SELECT.md) - 智能查询构建、复杂条件、多表关联、结果格式化
+- [自定义 SQL 查询](docs/QUERY.md) - 手写 SQL 执行、子查询、UNION、窗口函数
+- [FetchConfig 配置](docs/FETCH_CONFIG.md) - fetch_mode、output_format、data_label 等结果格式化参数
 
 ### 💾 数据修改
-- [INSERT 插入操作](doc/INSERT.md) - 批量插入、大数据优化、重复处理
-- [UPSERT 插入或更新](doc/UPSERT.md) - 存在则更新、不存在则插入
-- [UPDATE 更新操作](doc/UPDATE.md) - 条件更新、批量更新、SQL表达式、性能优化
-- [DELETE 删除操作](doc/DELETE.md) - 安全删除、条件组合、错误处理、调试技巧
+- [INSERT 插入操作](docs/INSERT.md) - 批量插入、大数据优化、重复处理
+- [UPSERT 插入或更新](docs/UPSERT.md) - 存在则更新、不存在则插入
+- [UPDATE 更新操作](docs/UPDATE.md) - 条件更新、批量更新、SQL表达式、性能优化
+- [DELETE 删除操作](docs/DELETE.md) - 安全删除、条件组合、错误处理、调试技巧
 
 ### 🛠️ SQL工具函数
-- [SQL工具函数](doc/SQL_UTILS.md) - add_limit条件构建、字符串拼接、运算符支持
+- [SQL工具函数](docs/SQL_UTILS.md) - add_limit条件构建、字符串拼接、运算符支持
 
 
 ## 🔧 环境要求
