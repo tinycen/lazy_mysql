@@ -11,6 +11,10 @@ def delete(executor, table_name, conditions, commit=False, self_close=False):
     :param self_close: 是否自动关闭连接
     :return: None
     """
+    if not conditions:
+        if self_close:
+            executor.close()
+        raise ValueError("conditions 不能为空，这会导致删除所有记录")
 
     # 构造WHERE子句
     where_clause, params = build_where_clause(conditions)

@@ -1,4 +1,13 @@
 import os
+import re
+
+
+def _validate_table_name(table_name: str) -> str:
+    """校验表名，仅允许字母、数字、下划线，防止 SQL 注入"""
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table_name):
+        raise ValueError(f"Invalid table name: {table_name}")
+    return table_name
+
 
 def table_md(executor, table_name, save_path=None, self_close=True):
     """
@@ -9,16 +18,16 @@ def table_md(executor, table_name, save_path=None, self_close=True):
     :param self_close: 是否自动关闭连接
     :return: None
     """
-    # 检查表是否存在
-    executor.execute(f"SHOW TABLES LIKE '{table_name}'", self_close=False)
+    table_name = _validate_table_name(table_name)
+
+    # 检查表是否存在（LIKE 子句支持参数化查询）
+    executor.execute("SHOW TABLES LIKE %s", params=(table_name,), self_close=False)
     if not executor.mycursor.fetchone():
         executor.close()
         raise ValueError(f"{table_name} not exist")
         
-    # 执行查询获取表结构(使用SHOW FULL COLUMNS)
+    # 执行查询获取表结构(使用SHOW FULL COLUMNS，FROM 子句不支持参数化，已通过表名校验防护)
     query = f"SHOW FULL COLUMNS FROM {table_name}"
-    # print(f"execute: {query}")  # 调试输出
-    # 执行查询但不关闭连接，因为后面还需要获取结果
     executor.execute(query, self_close=False)
 
     # 获取查询结果
@@ -28,16 +37,16 @@ def table_md(executor, table_name, save_path=None, self_close=True):
         raise ValueError(f"查询 '{query}' 没有返回结果集")
     # print(f"原始查询结果: {result}")  # 调试输出
     
-    # 获取主键信息
+    # 获取主键信息（FROM 子句不支持参数化，已通过表名校验防护）
     executor.execute(f"SHOW KEYS FROM {table_name} WHERE Key_name = 'PRIMARY'", self_close=False)
     primary_keys = [row[4] for row in executor.mycursor.fetchall()]
     
-    # 获取索引信息
+    # 获取索引信息（FROM 子句不支持参数化，已通过表名校验防护）
     executor.execute(f"SHOW INDEX FROM {table_name}", self_close=False)
     index_results = executor.mycursor.fetchall()
     
-    # 获取表的字符集和排序规则信息
-    executor.execute(f"SHOW TABLE STATUS LIKE '{table_name}'", self_close=False)
+    # 获取表的字符集和排序规则信息（LIKE 子句支持参数化查询）
+    executor.execute("SHOW TABLE STATUS LIKE %s", params=(table_name,), self_close=False)
     table_status = executor.mycursor.fetchone()
     table_charset = table_status[14] if table_status and len(table_status) > 14 else "未知"
     table_collation = table_status[15] if table_status and len(table_status) > 15 else "未知"
