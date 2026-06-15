@@ -89,7 +89,7 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
         # 添加JOIN子句
         if join_conditions:
             # JOIN操作，table_names必须是包含至少两个表名的列表
-            if isinstance(table_names, str) or len(table_names) < 2:
+            if len(table_names) < 2:
                 raise ValueError("存在JOIN操作时，table_names必须是包含至少两个表名的列表")
             join_type = join_conditions.get("join_type", "JOIN")
             join_conds = join_conditions.get("conditions", [])

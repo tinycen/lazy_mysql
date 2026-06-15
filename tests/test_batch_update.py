@@ -3,6 +3,7 @@ Tests for batch_update functionality
 """
 import pytest
 from lazy_mysql.utils.update.batch_update import (
+    batch_update,
     _build_complex_update_sql,
     _build_simple_update_sql,
     _check_simple_case
@@ -152,6 +153,38 @@ def test_check_simple_case():
     is_simple, key_field = _check_simple_case(df_tuple)
     assert is_simple is False
     assert key_field is None
+
+
+def test_batch_update_rejects_empty_fields():
+    """Test that batch_update rejects items with empty fields dict"""
+    class DummyExecutor:
+        def execute(self, sql, params, commit, self_close):
+            pass
+
+    executor = DummyExecutor()
+
+    update_list = [
+        {'fields': {}, 'conditions': {'id': 1}}
+    ]
+
+    with pytest.raises(ValueError, match="fields 不能为空"):
+        batch_update(executor, 'users', update_list)
+
+
+def test_batch_update_rejects_missing_fields():
+    """Test that batch_update rejects items missing fields key"""
+    class DummyExecutor:
+        def execute(self, sql, params, commit, self_close):
+            pass
+
+    executor = DummyExecutor()
+
+    update_list = [
+        {'conditions': {'id': 1}}
+    ]
+
+    with pytest.raises(ValueError, match="update_list 中每个元素必须包含 'fields' 和 'conditions'"):
+        batch_update(executor, 'users', update_list)
 
 
 if __name__ == '__main__':

@@ -25,7 +25,13 @@ def insert(executor, table_name, fields, skip_duplicate=False, commit=False, sel
     :param temp_dir: 临时文件目录，默认为系统临时目录
     :return: 插入成功的记录数（int）
     """
-    
+
+    # 空列表快速返回
+    if isinstance(fields, list) and not fields:
+        if self_close:
+            executor.close()
+        return 0
+
     # 单条插入
     if isinstance(fields, dict):
         field_names = list(fields.keys())
@@ -33,13 +39,8 @@ def insert(executor, table_name, fields, skip_duplicate=False, commit=False, sel
         values = _build_row_values(fields, field_names)
         executor.execute(sql, values, commit, self_close)
         return 1
-        
+
     elif isinstance(fields, list):
-        if not fields:
-            if self_close:
-                executor.close()
-            return 0
-            
         insert_num = len(fields)
         
         # 根据数据量选择最优策略
@@ -80,14 +81,20 @@ def upsert(executor, table_name, fields, fields_update=None, commit=False, self_
     :param fields_update: 指定冲突时更新的字段，None 表示更新所有字段
     示例：{'age'} 表示只更新 age 字段，其他字段保持不变
     """
+    # 空列表快速返回
+    if isinstance(fields, list) and not fields:
+        if self_close:
+            executor.close()
+        return 0
+
     if isinstance(fields, dict):
         return _upsert_single(executor, table_name, fields, fields_update, commit, self_close)
-    elif isinstance(fields, list) and fields:
+    elif isinstance(fields, list):
         return _upsert_batch(executor, table_name, fields, fields_update, commit, self_close)
     else:
         if self_close:
             executor.close()
-        raise ValueError("fields must be a dict or a non-empty list of dicts")
+        raise ValueError("fields must be a dict or a list of dicts")
 
 
 def _build_insert_sql(table_name, fields, skip_duplicate=False):
