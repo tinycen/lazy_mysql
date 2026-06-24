@@ -27,9 +27,6 @@ def _is_pandas_list_like(value):
     )
 
 
-
-
-
 def _normalize_json_value(value):
     if _is_missing_value(value):
         return None

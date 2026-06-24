@@ -45,6 +45,11 @@ def batch_update(executor, table_name, update_list, commit=False, self_close=Fal
         if 'fields' not in item or 'conditions' not in item:
             raise ValueError("update_list 中每个元素必须包含 'fields' 和 'conditions'")
 
+        if not isinstance(item.get('fields'), dict):
+            raise TypeError(f"fields must be dict, got {type(item.get('fields'))}")
+        if not isinstance(item.get('conditions'), dict):
+            raise TypeError(f"conditions must be dict, got {type(item.get('conditions'))}")
+
         if not item['fields']:
             raise ValueError("fields 不能为空")
         
