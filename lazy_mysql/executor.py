@@ -4,7 +4,7 @@ from .utils.connect import connection
 from .dataclasses.fetch_config import FetchConfig
 
 # 定义需要重试的错误信息常量
-RETRYABLE_ERRORS = [
+_RETRYABLE_ERRORS = [
     "Lost connection to MySQL server",
     "The Read Operation timed out",
     "TimeoutError",
@@ -75,7 +75,7 @@ class SQLExecutor :
         error_str_lower = error_str.lower()
         
         # 检查是否是可重试的错误（连接丢失或超时错误）
-        if retry_count == 0 and any(err_kw.lower() in error_str_lower for err_kw in RETRYABLE_ERRORS):
+        if retry_count == 0 and any(err_kw.lower() in error_str_lower for err_kw in _RETRYABLE_ERRORS):
             try:
                 print(f"Connection lost or timeout during {operation_name}. Attempting to reconnect...")
                 # 关闭现有连接
