@@ -19,9 +19,13 @@ class SQLExecutor :
 
     def __init__( self , sql_config=None ,database=None,dict_cursor=False) :
         self.sql_config = MySQLConfig.resolve(sql_config)
-        self.database = database
+        self.database = database or getattr(self.sql_config, "database", None)
+        if not self.database:
+            raise ValueError(
+                "未指定数据库名称！请通过 database 参数 或 sql_config.database 属性或环境变量 LAZY_MYSQL_DATABASE 提供数据库名。"
+            )
         self.dict_cursor = dict_cursor
-        self.mydb , self.mycursor = connection( self.sql_config,database,dict_cursor=dict_cursor )
+        self.mydb , self.mycursor = connection( self.sql_config, self.database, dict_cursor=dict_cursor )
 
     # 读取sql文件
     def read_sql( self , sql_path ) :
