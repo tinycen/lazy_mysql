@@ -79,6 +79,7 @@ def test_sql_executor_accepts_optional_sql_config(monkeypatch):
 
     monkeypatch.setenv("LAZY_MYSQL_HOST", "executor-host")
     monkeypatch.setenv("LAZY_MYSQL_PASSWD", "executor-pass")
+    monkeypatch.setenv("LAZY_MYSQL_DATABASE", "test_db")
     monkeypatch.setattr("lazy_mysql.executor.connection", fake_connection)
 
     executor = SQLExecutor()
@@ -86,7 +87,7 @@ def test_sql_executor_accepts_optional_sql_config(monkeypatch):
 
     assert isinstance(captured["sql_config"], MySQLConfig)
     assert captured["sql_config"].host == "executor-host"
-    assert captured["database"] is None
+    assert captured["database"] == "test_db"
     assert captured["dict_cursor"] is False
 
 
