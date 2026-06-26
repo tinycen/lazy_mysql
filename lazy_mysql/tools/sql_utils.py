@@ -3,8 +3,8 @@
 # 载入sql文件
 def load_sql( sql_path ) :
     with open(sql_path, 'r', encoding='utf-8') as f:
-        sql = f.read()
-    return sql.strip()
+        sql = f.read().strip()
+    return sql
 
 # 构建SQL条件限制语句
 def add_limit( column , value , column_alias = "" , add_and = True , operator = "=" ) : 

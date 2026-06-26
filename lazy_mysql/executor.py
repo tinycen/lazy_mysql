@@ -31,11 +31,6 @@ class SQLExecutor :
         self.mydb , self.mycursor = connection( self.sql_config, self.database, dict_cursor=dict_cursor )
         self.logger = logging.getLogger(__name__)
 
-    # 读取sql文件
-    def read_sql( self , sql_path ) :
-        with open(sql_path, 'r', encoding='utf-8') as f:
-            sql = f.read()
-        return sql.strip()
 
     # 关闭数据库连接
     def close( self ) :
