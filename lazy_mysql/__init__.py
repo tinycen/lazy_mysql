@@ -1,4 +1,4 @@
-from .models.mysql_config import MySQLConfig, FetchConfig, DEFAULT_MYSQL_CONFIG
+from .models import MySQLConfig, FetchConfig, DEFAULT_MYSQL_CONFIG
 from .executor import SQLExecutor
 from .utils import insert, upsert, select, exists, update, batch_update, delete, merge_update_lists
 from .tools import NDayInterval, add_limit, load_sql
