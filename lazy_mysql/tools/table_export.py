@@ -207,10 +207,6 @@ def view_md(executor, view_name, save_path=None, self_close=True):
     # 生成Markdown内容
     md_content = f"## {view_name} 视图结构\n\n"
 
-    # 视图源 SQL
-    md_content += "### 源 SQL\n\n"
-    md_content += f"```sql\n{view_source}\n```\n\n"
-
     # 字段信息表
     md_content += "### 字段信息\n\n"
     md_content += "| 字段名 | 字段类型 | 编码/排序规则 | 字段描述 | 默认值 |\n"
@@ -221,6 +217,10 @@ def view_md(executor, view_name, save_path=None, self_close=True):
         collation = collation if collation else "-"
         default_value = str(default_value) if default_value is not None else "-"
         md_content += f"| {field_name} | {field_type} | {collation} | {field_comment} | {default_value} |\n"
+
+    # 视图源 SQL
+    md_content += "\n### 源 SQL\n\n"
+    md_content += f"```sql\n{view_source}\n```\n\n"
 
     # 写入Markdown文件
     if save_path is None:
