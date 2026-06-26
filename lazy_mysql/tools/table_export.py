@@ -11,14 +11,20 @@ def _validate_table_name(table_name: str) -> str:
 
 def table_md(executor, table_name, save_path=None, self_close=True):
     """
-    将 table 中的字段和字段类型,字段描述,是否主键,索引导出为md格式文件
+    将 table/view 中的字段和字段类型,字段描述,是否主键,索引导出为md格式文件
+    - 自动识别视图并委托 view_md 处理
     :param executor: SQLExecutor 实例
-    :param table_name: 表名
+    :param table_name: 表名或视图名
     :param save_path: 保存路径
     :param self_close: 是否自动关闭连接
     :return: None
     """
     table_name = _validate_table_name(table_name)
+
+    # 自动识别视图，委托 view_md 处理
+    if _is_view(executor, table_name):
+        view_md(executor, table_name, save_path, self_close)
+        return
 
     # 检查表是否存在（LIKE 子句支持参数化查询）
     executor.execute("SHOW TABLES LIKE %s", params=(table_name,), self_close=False)
@@ -136,52 +142,163 @@ def table_md(executor, table_name, save_path=None, self_close=True):
         md_file.write(md_content)
 
 
+def _is_view(executor, table_name: str) -> bool:
+    """判断表名是否为视图"""
+    executor.execute("SHOW FULL TABLES LIKE %s", params=(table_name,), self_close=False)
+    row = executor.mycursor.fetchone()
+    if row and len(row) > 1:
+        return row[1].upper() == 'VIEW'
+    return False
+
+
+def _get_view_source(executor, view_name: str) -> str:
+    """获取视图的源 SQL 文本"""
+    executor.execute(f"SHOW CREATE VIEW {view_name}", self_close=False)
+    row = executor.mycursor.fetchone()
+    if row and len(row) > 1:
+        return row[1]
+    return ""
+
+
+def view_md(executor, view_name, save_path=None, self_close=True):
+    """
+    将视图的字段结构、字段描述和源 SQL 导出为 md 格式文件
+    :param executor: SQLExecutor 实例
+    :param view_name: 视图名
+    :param save_path: 保存路径
+    :param self_close: 是否自动关闭连接
+    :return: None
+    """
+    view_name = _validate_table_name(view_name)
+
+    # 检查视图是否存在
+    executor.execute("SHOW FULL TABLES LIKE %s", params=(view_name,), self_close=False)
+    row = executor.mycursor.fetchone()
+    if not row or (len(row) > 1 and row[1].upper() != 'VIEW'):
+        executor.close()
+        raise ValueError(f"{view_name} is not a view or does not exist")
+
+    # 获取视图源 SQL
+    view_source = _get_view_source(executor, view_name)
+
+    # 执行查询获取视图字段结构
+    query = f"SHOW FULL COLUMNS FROM {view_name}"
+    executor.execute(query, self_close=False)
+    if executor.mycursor.with_rows:
+        result = executor.mycursor.fetchall()
+    else:
+        raise ValueError(f"查询 '{query}' 没有返回结果集")
+
+    if self_close:
+        executor.close()
+
+    # 解析结果(取Field,Type,Collation,Default,Comment字段)
+    result = [(row[0], row[1], row[2], row[5], row[8]) for row in result]
+
+    # 生成Markdown内容
+    md_content = f"## {view_name} 视图结构\n\n"
+
+    # 视图源 SQL
+    md_content += "### 源 SQL\n\n"
+    md_content += f"```sql\n{view_source}\n```\n\n"
+
+    # 字段信息表
+    md_content += "### 字段信息\n\n"
+    md_content += "| 字段名 | 字段类型 | 编码/排序规则 | 字段描述 | 默认值 |\n"
+    md_content += "| --- | --- | --- | --- | --- |\n"
+    for row in result:
+        field_name, field_type, collation, default_value, field_comment = row
+        field_comment = field_comment if field_comment else "-"
+        collation = collation if collation else "-"
+        default_value = str(default_value) if default_value is not None else "-"
+        md_content += f"| {field_name} | {field_type} | {collation} | {field_comment} | {default_value} |\n"
+
+    # 写入Markdown文件
+    if save_path is None:
+        save_path = f"{view_name}.md"
+    with open(save_path, 'w', encoding='utf-8') as md_file:
+        md_file.write(md_content)
+
+
 def tables_md(executor, table_names=None, save_dir=None, self_close=True):
     """
-    批量导出表结构为md格式文件
+    批量导出表结构和视图结构为md格式文件
+    - 表导出到 save_dir 目录
+    - 视图导出到 save_dir/views 子目录
     :param executor: SQLExecutor 实例
-    :param table_names: 表名列表，如果为None或空列表则导出所有表
+    :param table_names: 表名列表，如果为None或空列表则导出所有表和视图
     :param save_dir: 保存目录路径，默认为当前目录下的table_docs文件夹
     :param self_close: 是否自动关闭连接
-    :return: 导出的表名列表
+    :return: dict，包含 'tables' 和 'views' 两个列表
     """
     try:
-        # 获取所有表名
-        if table_names is None or len(table_names) == 0:
-            executor.execute("SHOW TABLES", self_close=False)
-            all_tables = [row[0] for row in executor.mycursor.fetchall()]
-            table_names = all_tables
-        
-        if not table_names:
-            print("No tables found.")
-            return []
-            
         # 设置保存目录
         if save_dir is None:
             save_dir = "table_docs"
-        
+
         # 创建保存目录
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
+
+        # 获取所有表和视图名
+        if table_names is None or len(table_names) == 0:
+            executor.execute("SHOW FULL TABLES", self_close=False)
+            all_rows = executor.mycursor.fetchall()
+            table_names = [row[0] for row in all_rows]
         
+        if not table_names:
+            print("No tables found.")
+            return {'tables': [], 'views': []}
+
+        # 区分表和视图
+        tables_list = []
+        views_list = []
+        for name in table_names:
+            if _is_view(executor, name):
+                views_list.append(name)
+            else:
+                tables_list.append(name)
+
         exported_tables = []
-        
+        exported_views = []
+
+        # 创建视图子目录
+        if views_list:
+            views_dir = os.path.join(save_dir, "views")
+            if not os.path.exists(views_dir):
+                os.makedirs(views_dir)
+
         # 导出每个表的结构
-        for table_name in table_names:
+        for table_name in tables_list:
             try:
                 save_path = os.path.join(save_dir, f"{table_name}.md")
                 table_md(executor, table_name, save_path, self_close=False)
                 exported_tables.append(table_name)
-                print(f"Success export: {table_name}")
+                print(f"Success export table: {table_name}")
             except Exception as e:
-                print(f"Export failed: {table_name}")
+                print(f"Export failed (table): {table_name} - {e}")
+                continue
+
+        # 导出每个视图的结构
+        for view_name in views_list:
+            try:
+                save_path = os.path.join(views_dir, f"{view_name}.md")
+                view_md(executor, view_name, save_path, self_close=False)
+                exported_views.append(view_name)
+                print(f"Success export view: {view_name}")
+            except Exception as e:
+                print(f"Export failed (view): {view_name} - {e}")
                 continue
         
         if self_close:
             executor.close()
-            
-        print(f"Batch export completed. Total of {len(exported_tables)} tables have been exported to:\n{save_dir}.")
-        return exported_tables
+
+        print(f"Batch export completed.")
+        if exported_tables:
+            print(f"  Tables ({len(exported_tables)}): {save_dir}")
+        if exported_views:
+            print(f"  Views ({len(exported_views)}): {os.path.join(save_dir, 'views')}")
+        return {'tables': exported_tables, 'views': exported_views}
         
     except Exception as e:
         if self_close:
