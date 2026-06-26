@@ -163,8 +163,100 @@ print(sql_content)
 3. **错误处理**: 如果文件不存在或无法读取，会抛出相应的文件操作异常
 
 ### 相关函数
+- [resolve_sql](#resolve_sql---智能解析SQL参数) - 自动判断 SQL 文本或文件路径
 - [build_where_clause](SELECT.md#build_where_clause) - 构建完整的WHERE子句
 - [NDayInterval](SELECT.md#ndayinterval) - 日期区间处理
 
 ### 更新日志
 - v0.1.1: 从 `where_clause.py` 移动到 `sql_utils.py`
+
+## resolve_sql - 智能解析SQL参数
+
+`resolve_sql` 函数用于智能判断传入参数是 SQL 文本还是 `.sql` 文件路径，并自动加载文件内容。已内置于 `execute()` 和 `fetch_format()` 方法中，用户可直接传入文件路径而无需手动调用。
+
+### 函数签名
+```python
+def resolve_sql(sql)
+```
+
+### 参数说明
+
+| 参数名 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| sql | str \| os.PathLike | 必填 | SQL语句字符串、`.sql` 文件路径 或 `os.PathLike` 对象 |
+
+### 返回值
+- **str**: 解析后的 SQL 语句字符串
+
+### 检测规则
+
+| 优先级 | 输入类型 | 处理方式 |
+|--------|---------|----------|
+| 1 | `os.PathLike` 对象（如 `pathlib.Path`） | 视为文件路径，读取文件内容 |
+| 2 | 字符串且以 `.sql` 结尾（不区分大小写） | 视为文件路径，读取文件内容 |
+| 3 | 其他字符串 | 视为 SQL 文本，原样返回 |
+
+### 使用示例
+
+#### 直接使用
+```python
+from lazy_mysql.tools import resolve_sql
+from pathlib import Path
+
+# SQL 文本 → 原样返回
+sql = resolve_sql('SELECT * FROM users WHERE age > 18')
+# 输出: 'SELECT * FROM users WHERE age > 18'
+
+# .sql 文件路径字符串 → 读取文件内容
+sql = resolve_sql('queries/select_users.sql')
+# 输出: 文件中的 SQL 内容
+
+# pathlib.Path 对象 → 读取文件内容
+sql = resolve_sql(Path('queries/select_users.sql'))
+# 输出: 文件中的 SQL 内容
+
+# 自定义 os.PathLike 对象 → 读取文件内容
+class MyPath(os.PathLike):
+    def __init__(self, path):
+        self._path = path
+    def __fspath__(self):
+        return self._path
+
+sql = resolve_sql(MyPath('queries/select_users.sql'))
+# 输出: 文件中的 SQL 内容
+```
+
+#### 在 SQLExecutor 中使用（推荐）
+
+`execute()` 和 `fetch_format()` 方法已内置 `resolve_sql`，可直接传入文件路径：
+
+```python
+from lazy_mysql import SQLExecutor
+
+executor = SQLExecutor(sql_config)
+
+# 直接传入 .sql 文件路径
+executor.execute('sql/insert_users.sql', ('张三', 25), commit=True)
+executor.query('sql/query_users.sql', fetch_config={'output_format': 'df_dict'})
+
+# 也支持 pathlib.Path
+from pathlib import Path
+executor.execute(Path('sql/insert_users.sql'), commit=True)
+
+# 原有的 SQL 文本方式完全不受影响
+executor.execute("INSERT INTO users (name, age) VALUES (%s, %s)", ('张三', 25), commit=True)
+```
+
+### 注意事项
+
+1. **幂等性**: 对已经是 SQL 文本的字符串调用会原样返回，因此可安全地多次调用
+2. **大小写不敏感**: `.sql`、`.SQL`、`.Sql` 均可识别为文件路径
+3. **空白容忍**: 路径前后的空白字符会被自动去除后再判断（`strip()`）
+4. **错误处理**: 如果文件不存在或无法读取，会抛出相应的文件操作异常
+
+### 相关函数
+- [load_sql](#load_sql---载入sql文件) - 直接从文件读取 SQL 内容
+- [add_limit](#add_limit---sql条件语句构建) - 构建 SQL 条件语句
+
+### 更新日志
+- 新增: 支持 `str` 和 `os.PathLike` 两种路径格式，内置于 `execute()` 和 `fetch_format()` 方法

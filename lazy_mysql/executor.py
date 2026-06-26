@@ -1,10 +1,8 @@
 import logging
 import sqlparse
 from typing import Any
-
-from .dataclasses.mysql_config import MySQLConfig
+from .dataclasses import FetchConfig, MySQLConfig
 from .utils.connect import connection
-from .dataclasses.fetch_config import FetchConfig
 from .tools.sql_utils import resolve_sql
 
 # 定义需要重试的错误信息常量

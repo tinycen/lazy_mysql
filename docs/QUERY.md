@@ -4,17 +4,31 @@
 
 ## 与其他方法的区别
 
-`lazy_mysql` 提供三个核心 SQL 执行方法，根据场景选择：
+`lazy_mysql` 提供以下 SQL 执行方法，根据场景选择：
 
 | 方法 | 定位 | 是否关心返回 | 典型场景 |
-|------|------|-------------|---------|
+|------|------|-------------|--------|
 | `execute()` | 通用 SQL 执行器 | 否（返回 None）| INSERT / UPDATE / DELETE 等写操作 |
-| `query()` | 手写 SELECT 查询 | 是（通过 `fetch_config` 控制格式）| 复杂 SELECT、子查询、UNION、窗口函数 |
+| `query()` | 手写 SELECT 查询（推荐）| 是（通过 `fetch_config` 控制格式）| 复杂 SELECT、子查询、UNION、窗口函数 |
+| `fetch_format()` | 手写 SELECT 查询（底层）| 是（通过分散参数控制格式）| 内部方法，`query()` 的底层实现 |
 | `select()` | 结构化 SELECT 查询（ORM 风格）| 是（通过 `fetch_config` 控制格式）| 常规查询，自动构造 SQL，开发效率高 |
 
 - 写操作（INSERT/UPDATE/DELETE）→ 用 `execute()`
 - 读操作且手写 SQL → 用 `query()`
 - 读操作且希望自动构造 SQL → 用 `select()`
+
+## `query()` 与 `fetch_format()` 的关系
+
+`query()` 是 `fetch_format()` 的上层封装，两者执行相同的底层逻辑，但参数风格不同：
+
+| 对比项 | `query()` | `fetch_format()` |
+|--------|-----------|------------------|
+| 参数风格 | 统一使用 `fetch_config`（`FetchConfig` 对象或字典）| 分散参数：`fetch_mode`、`output_format`、`show_count`、`data_label` 分别传入 |
+| 默认输出格式 | `output_format="df_dict"`（字典列表）| `output_format=""`（原始元组） |
+| 适用对象 | 面向用户，推荐使用 | 内部方法，供 `query()`/`select()` 内部调用 |
+| 参数校验 | 自动解析 `fetch_config`，填充默认值 | 需调用方自行传入所有参数 |
+
+> **建议**：手写 SQL 查询统一使用 `query()`，`fetch_format()` 通常无需直接调用。
 
 ## 适用场景
 
@@ -23,6 +37,8 @@
 - 性能调优时手写优化后的 SQL
 
 ## 函数签名
+
+### `query()`
 
 ```python
 query(
@@ -33,13 +49,41 @@ query(
 )
 ```
 
+### `fetch_format()`（底层方法，通常无需直接调用）
+
+```python
+fetch_format(
+    sql: str,
+    fetch_mode: str,          # 必填，可选值: "all"、"oneTuple"、"one"
+    output_format: str = "",  # 可选值: ""、"list_1"、"df"、"df_dict"
+    show_count: bool = False,
+    data_label: list | None = None,
+    params=None,
+    self_close: bool = False
+)
+```
+
 ### 参数说明
+
+#### `query()` 参数
 
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | `sql` | str | 是 | 完整的 SQL 查询语句 |
 | `params` | dict/tuple/list | 否 | 参数化查询的参数，支持单条或批量 |
 | `fetch_config` | FetchConfig/dict | 否 | 结果格式化配置，详见 [FETCH_CONFIG.md](FETCH_CONFIG.md) |
+| `self_close` | bool | 否 | 是否自动关闭数据库连接 |
+
+#### `fetch_format()` 参数（底层方法）
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| `sql` | str | 是 | 完整的 SQL 查询语句 |
+| `fetch_mode` | str | 是 | 获取模式：`"all"`（所有结果）、`"oneTuple"`（单条元组）、`"one"`（单个值）|
+| `output_format` | str | 否 | 输出格式，默认 `""`（原始元组），可选 `"list_1"`、`"df"`、`"df_dict"` |
+| `show_count` | bool | 否 | 是否打印并返回结果数量，默认 `False` |
+| `data_label` | list | 否 | 列名标签，`output_format` 为 `"df"` / `"df_dict"` 时不能为空 |
+| `params` | dict/tuple/list | 否 | 参数化查询的参数 |
 | `self_close` | bool | 否 | 是否自动关闭数据库连接 |
 
 ## 基础用法

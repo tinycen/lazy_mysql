@@ -157,7 +157,7 @@ executor.commit_close()
 - [DELETE 删除操作](docs/DELETE.md) - 安全删除、条件组合、错误处理、调试技巧
 
 ### 🛠️ SQL工具函数
-- [SQL工具函数](docs/SQL_UTILS.md) - add_limit条件构建、字符串拼接、运算符支持
+- [SQL工具函数](docs/SQL_UTILS.md) - add_limit条件构建、resolve_sql智能路径解析、load_sql文件加载
 
 
 ## 🔧 环境要求
