@@ -1,6 +1,8 @@
 import os
 import re
 
+import sqlparse
+
 
 def _validate_table_name(table_name: str) -> str:
     """校验表名，仅允许字母、数字、下划线，防止 SQL 注入"""
@@ -152,11 +154,18 @@ def _is_view(executor, table_name: str) -> bool:
 
 
 def _get_view_source(executor, view_name: str) -> str:
-    """获取视图的源 SQL 文本"""
+    """获取视图的源 SQL 文本，并格式化为可读格式"""
     executor.execute(f"SHOW CREATE VIEW {view_name}", self_close=False)
     row = executor.mycursor.fetchone()
     if row and len(row) > 1:
-        return row[1]
+        raw_sql = row[1]
+        return sqlparse.format(
+            raw_sql,
+            reindent=True,
+            keyword_case='upper',
+            indent_width=4,
+            strip_comments=False,
+        )
     return ""
 
 
