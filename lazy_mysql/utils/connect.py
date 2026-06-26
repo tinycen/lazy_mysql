@@ -1,7 +1,7 @@
 import time
 import mysql.connector
 from mysql.connector.errors import ConnectionTimeoutError, InterfaceError
-from ..dataclasses.mysql_config import MySQLConfig
+from ..models.mysql_config import MySQLConfig
 
 def _check_connector_version():
     try:

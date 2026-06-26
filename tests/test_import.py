@@ -6,6 +6,6 @@ def test_lazy_mysql_import():
 
 def test_mysql_config_import_paths_are_consistent():
     from lazy_mysql import MySQLConfig as RootMySQLConfig
-    from lazy_mysql.dataclasses import MySQLConfig as DataclassesMySQLConfig
+    from lazy_mysql.models import MySQLConfig as ModelsMySQLConfig
 
-    assert RootMySQLConfig is DataclassesMySQLConfig
+    assert RootMySQLConfig is ModelsMySQLConfig

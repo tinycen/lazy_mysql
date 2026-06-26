@@ -1,5 +1,5 @@
 from ..tools.where_clause import build_where_clause
-from ..dataclasses.fetch_config import FetchConfig
+from ..models.fetch_config import FetchConfig
 from ..tools.result_formatter import fetch_format
 
 def select(executor, table_names, fields=None, conditions=None, order_by=None, limit:int|None=None,
@@ -48,7 +48,7 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
             }
 
         示例（使用 FetchConfig 模型）：
-            from lazy_mysql.dataclasses import FetchConfig
+            from lazy_mysql.models import FetchConfig
 
             # 获取所有记录并返回DataFrame
             fetch_config = FetchConfig(

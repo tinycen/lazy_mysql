@@ -1,7 +1,7 @@
 import logging
 import sqlparse
 from typing import Any
-from .dataclasses import FetchConfig, MySQLConfig
+from .models import FetchConfig, MySQLConfig
 from .utils.connect import connection
 from .tools.sql_utils import resolve_sql
 
@@ -379,7 +379,7 @@ class SQLExecutor :
                 }
 
             示例（使用 FetchConfig 模型）：
-                from lazy_mysql.dataclasses import FetchConfig
+                from lazy_mysql.models import FetchConfig
 
                 # 获取所有记录并返回DataFrame
                 fetch_config = FetchConfig(
@@ -471,7 +471,7 @@ class SQLExecutor :
                 }
 
             示例（使用 FetchConfig 模型）：
-                from lazy_mysql.dataclasses import FetchConfig
+                from lazy_mysql.models import FetchConfig
 
                 # 获取单条记录
                 fetch_config = FetchConfig(
@@ -572,7 +572,7 @@ class SQLExecutor :
                 }
 
             示例（使用 FetchConfig 模型）：
-                from lazy_mysql.dataclasses import FetchConfig
+                from lazy_mysql.models import FetchConfig
                 fetch_config = FetchConfig(
                     fetch_mode="all",
                     output_format="df",
