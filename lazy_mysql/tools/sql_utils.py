@@ -1,10 +1,32 @@
 # SQL工具函数
+import os
 
 # 载入sql文件
 def load_sql( sql_path ) :
     with open(sql_path, 'r', encoding='utf-8') as f:
         sql = f.read().strip()
     return sql
+
+
+# 智能解析 SQL 参数：自动判断是 SQL 文本还是 .sql 文件路径
+def resolve_sql(sql):
+    """
+    智能解析 SQL 参数：自动判断是 SQL 文本还是 .sql 文件路径
+
+    检测规则：
+    1. os.PathLike 对象（如 pathlib.Path） → 视为文件路径，读取文件内容
+    2. 字符串且以 .sql 结尾（不区分大小写） → 视为文件路径，读取文件内容
+    3. 其他字符串 → 视为 SQL 文本，原样返回
+
+    :param sql: SQL语句字符串 或 .sql 文件路径（支持 str / os.PathLike）
+    :return: 解析后的 SQL 语句字符串
+    """
+    if isinstance(sql, os.PathLike):
+        return load_sql(sql)
+    if isinstance(sql, str) and sql.strip().lower().endswith('.sql'):
+        return load_sql(sql)
+    return sql
+
 
 # 构建SQL条件限制语句
 def add_limit( column , value , column_alias = "" , add_and = True , operator = "=" ) : 

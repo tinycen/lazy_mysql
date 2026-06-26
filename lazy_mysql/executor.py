@@ -5,6 +5,7 @@ from typing import Any
 from .dataclasses.mysql_config import MySQLConfig
 from .utils.connect import connection
 from .dataclasses.fetch_config import FetchConfig
+from .tools.sql_utils import resolve_sql
 
 # 定义需要重试的错误信息常量
 _RETRYABLE_ERRORS = [
@@ -151,10 +152,11 @@ class SQLExecutor :
            元组列表：[("张三", 25), ("李四", 30)] 
            字典列表：[{"name": "张三", "age": 25}, {"name": "李四", "age": 30}]
 
-        :param sql: SQL语句，支持 %s 和 %(name)s 占位符
+        :param sql: SQL语句（支持直接传入SQL文本或 .sql 文件路径），支持 %s 和 %(name)s 占位符
         :param retry_count: 内部参数，用于记录重试次数，避免无限循环
         
         """
+        sql = resolve_sql(sql)
         try :
             if params :
                 if isinstance(params, dict) or isinstance(params, tuple):
@@ -200,7 +202,7 @@ class SQLExecutor :
                       params = None , self_close = False ) :
         """
         定义解析结果程序(格式化返回结果)
-        :param sql: SQL语句
+        :param sql: SQL语句（支持直接传入SQL文本或 .sql 文件路径）
         :param fetch_mode: 获取模式,可选值: all、oneTuple、one
         :param output_format: 输出格式 ,默认 "" , 可选值: list_1、df、df_dict ，在 fetch_mode 为 all 时有效，oneTuple 时支持 dict
         :param show_count: 是否显示结果数量
@@ -217,6 +219,7 @@ class SQLExecutor :
                 - 其他情况返回单个元组，如 (1, '张三', 'zhang@example.com')
             - fetch_mode="one": 返回单个值，如 1 或 '张三'
         """
+        sql = resolve_sql(sql)
         from .tools.result_formatter import fetch_format as fetch_format_func
         return fetch_format_func(self, sql, fetch_mode, output_format, show_count, data_label, params, self_close)
 
