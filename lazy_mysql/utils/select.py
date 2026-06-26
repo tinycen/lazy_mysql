@@ -1,5 +1,6 @@
 from ..tools.where_clause import build_where_clause
 from ..dataclasses.fetch_config import FetchConfig
+from ..tools.result_formatter import fetch_format
 
 def select(executor, table_names, fields=None, conditions=None, order_by=None, limit:int|None=None,
            distinct:bool=False, join_conditions=None, self_close:bool=False, fetch_config=None):
@@ -152,7 +153,7 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
             # 如果fields是列表，直接使用
             data_label = fields
 
-    result = executor.fetch_format(sql, fetch_mode, output_format, show_count, data_label, params, self_close)
+    result = fetch_format(executor, sql, fetch_mode, output_format, show_count, data_label, params, self_close)
     return result
 
 
@@ -231,7 +232,7 @@ def exists(executor, table_names, conditions=None, join_conditions=None, self_cl
     sql += " LIMIT 1"
 
     # 执行查询
-    result = executor.fetch_format(sql, "one", "", False, None, params, self_close)
+    result = fetch_format(executor, sql, "one", "", False, None, params, self_close)
 
     # 如果有结果返回 True，否则返回 False
     return result is not None
