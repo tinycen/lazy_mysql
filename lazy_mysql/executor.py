@@ -1,4 +1,7 @@
+import logging
+import sqlparse
 from typing import Any
+
 from .dataclasses.mysql_config import MySQLConfig
 from .utils.connect import connection
 from .dataclasses.fetch_config import FetchConfig
@@ -26,6 +29,7 @@ class SQLExecutor :
             )
         self.dict_cursor = dict_cursor
         self.mydb , self.mycursor = connection( self.sql_config, self.database, dict_cursor=dict_cursor )
+        self.logger = logging.getLogger(__name__)
 
     # 读取sql文件
     def read_sql( self , sql_path ) :
@@ -81,7 +85,7 @@ class SQLExecutor :
         # 检查是否是可重试的错误（连接丢失或超时错误）
         if retry_count == 0 and any(err_kw.lower() in error_str_lower for err_kw in _RETRYABLE_ERRORS):
             try:
-                print(f"Connection lost or timeout during {operation_name}. Attempting to reconnect...")
+                self.logger.warning("Connection lost or timeout during %s. Attempting to reconnect...", operation_name)
                 # 关闭现有连接
                 self.close()
                 
@@ -91,13 +95,21 @@ class SQLExecutor :
                 return True  # 重试成功
                 
             except Exception as reconnect_error:
-                print(f"Reconnection failed during {operation_name}: {str(reconnect_error)}")
+                self.logger.error("Reconnection failed during %s: %s", operation_name, reconnect_error)
                 # 继续执行原始的错误处理流程
         
         if sql:
-            print(f"sql: {sql} \n params:{params}")
-        print(f"{operation_name} failed: {error_str}")
-        
+            formatted_sql = sqlparse.format(sql, reindent=True, keyword_case='upper')
+            self.logger.error("SQL:\n%s", formatted_sql)
+            if params is not None:
+                self.logger.error("Params: %s", params)
+
+            # 获取游标中已填充参数的完整SQL语句
+            full_statement = getattr(self.mycursor, 'statement', None)
+            if full_statement:
+                formatted_statement = sqlparse.format(full_statement, reindent=True, keyword_case='upper')
+                self.logger.error("Full SQL (with params):\n%s", formatted_statement)
+                
         # 如果发生错误，回滚事务
         if needs_rollback:
             try:
