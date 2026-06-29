@@ -80,11 +80,12 @@ def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
                 time.sleep(delay)
             else:
                 break
-        except Exception:
-            raise
-    
-    # 如果重试次数用完仍然失败，抛出最后一次的异常
+
+    # 如果 没有命中重试：
+    # Python 中如果一个异常没有被任何 except 子句匹配，它会直接带着原始 traceback 向上传播（报 raise）
+
+    # 如果重试次数用完（ 则必然抛出 last_exception ）仍然失败，抛出最后一次的异常
     if last_exception:
         raise last_exception
-    else:
-        raise Exception("连接失败，已达到最大重试次数")
+    # else:
+    #     raise Exception("连接失败，已达到最大重试次数")

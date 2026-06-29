@@ -11,7 +11,7 @@ def update(executor, table_name, fields, conditions, commit=False, self_close=Fa
     :param conditions: WHERE条件，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
     :param commit: 是否自动提交
     :param self_close: 是否自动关闭连接
-    :return: None
+    :return: 受影响的行数（int）
     """
     if not fields:
         if self_close:
@@ -42,3 +42,4 @@ def update(executor, table_name, fields, conditions, commit=False, self_close=Fa
 
     # 执行SQL
     executor.execute(sql, params, commit, self_close)
+    return executor.mycursor.rowcount

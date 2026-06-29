@@ -1,6 +1,7 @@
 import logging
 import sqlparse
-from typing import Any
+from mysql.connector.abstracts import MySQLConnectionAbstract
+from mysql.connector.cursor import MySQLCursor
 from .models import FetchConfig, MySQLConfig
 from .utils.connect import connection
 from .tools.sql_utils import resolve_sql
@@ -16,8 +17,8 @@ _RETRYABLE_ERRORS = [
 class SQLExecutor :
     """SQL执行器类，提供统一的数据库操作接口"""
 
-    mydb: Any
-    mycursor: Any
+    mydb: MySQLConnectionAbstract | None = None
+    mycursor: MySQLCursor | None = None
 
     def __init__( self , sql_config=None ,database=None,dict_cursor=False) :
         self.sql_config = MySQLConfig.resolve(sql_config)
@@ -275,10 +276,10 @@ class SQLExecutor :
         :param conditions: WHERE条件，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
         :param commit: 是否自动提交
         :param self_close: 是否自动关闭连接
-        :return: None
+        :return: 受影响的行数（int）
         """
         from .utils.update import update as update_func
-        update_func(self, table_name, fields, conditions, commit, self_close)
+        return update_func(self, table_name, fields, conditions, commit, self_close)
 
     # 批量更新数据
     def batch_update( self , table_name , update_list , commit = False , self_close = False ) :
@@ -326,10 +327,10 @@ class SQLExecutor :
         :param conditions: WHERE条件，格式为字典，如 {'field1': 'value1', 'field2': 'value2'}
         :param commit: 是否自动提交
         :param self_close: 是否自动关闭连接
-        :return: None
+        :return: 受影响的行数（int）
         """
         from .utils.delete import delete as delete_func
-        delete_func(self, table_name, conditions, commit, self_close)
+        return delete_func(self, table_name, conditions, commit, self_close)
 
 
     # 选择数据

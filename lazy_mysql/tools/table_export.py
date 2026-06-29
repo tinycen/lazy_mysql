@@ -272,10 +272,9 @@ def tables_md(executor, table_names=None, save_dir=None, self_close=True):
         exported_views = []
 
         # 创建视图子目录
-        if views_list:
-            views_dir = os.path.join(save_dir, "views")
-            if not os.path.exists(views_dir):
-                os.makedirs(views_dir)
+        views_dir = os.path.join(save_dir, "views")
+        if views_list and not os.path.exists(views_dir):
+            os.makedirs(views_dir)
 
         # 导出每个表的结构
         for table_name in tables_list:

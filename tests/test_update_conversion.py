@@ -7,10 +7,16 @@ from lazy_mysql.utils.update.batch_update import batch_update
 from lazy_mysql.utils.update.update import update
 
 
+class DummyCursor:
+    def __init__(self):
+        self.rowcount = 1
+
+
 class DummyExecutor:
     def __init__(self):
         self.calls = []
         self.closed = False
+        self.mycursor = DummyCursor()
 
     def execute(self, sql, params=None, commit=False, self_close=False):
         self.calls.append({

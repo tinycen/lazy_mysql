@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Literal, Optional
+from typing import Literal
 
 FetchMode = Literal["all", "oneTuple", "one"]
 OutputFormat = Literal["", "list_1", "df", "df_dict"]
@@ -10,7 +10,7 @@ class FetchConfig(BaseModel):
 
     fetch_mode: FetchMode = Field(default="all", description="获取模式，控制返回数据的数量")
     output_format: OutputFormat = Field(default="", description="输出格式")
-    data_label: Optional[List[str]] = Field(default=None, description="数据标签，用于DataFrame的列名或字典的键名")
+    data_label: list[str] | None = Field(default=None, description="数据标签，用于DataFrame的列名或字典的键名")
     show_count: bool = Field(default=False, description="是否显示查询结果数量")
 
     def to_dict(self) -> dict:
