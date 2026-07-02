@@ -8,7 +8,7 @@ def fetch_format( executor , sql , fetch_mode: Literal["all", "oneTuple", "one"]
     :param executor: SQLExecutor 实例
     :param sql: SQL语句
     :param fetch_mode: 获取模式,可选值: all、oneTuple、one
-    :param output_format: 输出格式 ,默认 "" , 可选值: list_1、df、df_dict ，在 fetch_mode 为 all 时有效，oneTuple 时支持 dict
+    :param output_format: 输出格式 ,默认 "" , 可选值: list_1、df、df_dict（fetch_mode="all" 时有效）、dict（仅 fetch_mode="oneTuple" 时有效）
     :param show_count: 是否显示结果数量
     :param data_label: 数据标签，用于DataFrame的列名或字典的键名
     :param params: 参数
@@ -27,9 +27,13 @@ def fetch_format( executor , sql , fetch_mode: Literal["all", "oneTuple", "one"]
     if data_label is None :
         data_label = [ ]
 
-    # 验证：当输出格式为df时，data_label不能为空
+    # 验证：当输出格式为df/df_dict时，data_label不能为空
     if output_format in ["df", "df_dict", "dict"] and not data_label:
-        raise ValueError("当 output_format 为 'df' 或 'df_dict' 或 'dict' 时，data_label 参数不能为空!")
+        raise ValueError("当 output_format 为 'df'、'df_dict' 或 'dict' 时，data_label 参数不能为空!")
+    # 验证：dict 格式仅支持 fetch_mode="oneTuple"
+    if output_format == "dict":
+        if fetch_mode != "oneTuple":
+            raise ValueError("output_format='dict' 仅在 fetch_mode='oneTuple' 时有效!")
 
     executor.execute( sql , params , self_close = False )
 

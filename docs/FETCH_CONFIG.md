@@ -26,6 +26,8 @@
 | `"df_dict"` | 返回字典列表（DataFrame 转 dict） | `all` |
 | `"dict"` | 仅在 `fetch_mode="oneTuple"` 且 `data_label` 不为空时有效，返回字典 | `oneTuple` |
 
+> 注意：`output_format="dict"` 仅在 `fetch_mode="oneTuple"` 时有效；在 `fetch_mode="all"` 时请使用 `"df_dict"` 获取字典列表，否则将抛出 `ValueError`。
+
 ### 3. data_label - 自定义列名
 
 - 类型: `list[str]`

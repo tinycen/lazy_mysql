@@ -210,7 +210,7 @@ class SQLExecutor :
         定义解析结果程序(格式化返回结果)
         :param sql: SQL语句（支持直接传入SQL文本或 .sql 文件路径）
         :param fetch_mode: 获取模式,可选值: all、oneTuple、one
-        :param output_format: 输出格式 ,默认 "" , 可选值: list_1、df、df_dict ，在 fetch_mode 为 all 时有效，oneTuple 时支持 dict
+        :param output_format: 输出格式 ,默认 "" , 可选值: list_1、df、df_dict（fetch_mode="all" 时有效）、dict（仅 fetch_mode="oneTuple" 时有效）
         :param show_count: 是否显示结果数量
         :param data_label: 数据标签，用于DataFrame的列名或字典的键名
         :param params: 参数
