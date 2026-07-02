@@ -158,7 +158,11 @@ class SQLExecutor :
         :param retry_count: 内部参数，用于记录重试次数，避免无限循环
         
         """
-        sql = resolve_sql(sql)
+        try:
+            sql = resolve_sql(sql)
+        except Exception:
+            self.close()
+            raise
         if self.mycursor is None or self.mydb is None:
             raise RuntimeError("数据库连接已关闭，无法执行SQL")
         try :
@@ -225,7 +229,11 @@ class SQLExecutor :
                 - 其他情况返回单个元组，如 (1, '张三', 'zhang@example.com')
             - fetch_mode="one": 返回单个值，如 1 或 '张三'
         """
-        sql = resolve_sql(sql)
+        try:
+            sql = resolve_sql(sql)
+        except Exception:
+            self.close()
+            raise
         from .tools.result_formatter import fetch_format as fetch_format_func
         return fetch_format_func(self, sql, fetch_mode, output_format, show_count, data_label, params, self_close)
 

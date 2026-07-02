@@ -25,6 +25,8 @@ def resolve_sql(sql):
         return load_sql(sql)
     if isinstance(sql, str) and sql.strip().lower().endswith('.sql'):
         return load_sql(sql)
+    if not isinstance(sql, str):
+        raise TypeError(f"SQL 必须是字符串或 .sql 文件路径，收到 {type(sql).__name__}")
     return sql
 
 
