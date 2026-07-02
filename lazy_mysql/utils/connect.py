@@ -1,6 +1,8 @@
 import time
 import mysql.connector
+from mysql.connector.abstracts import MySQLConnectionAbstract, MySQLCursorAbstract
 from mysql.connector.errors import ConnectionTimeoutError, InterfaceError
+from mysql.connector.pooling import PooledMySQLConnection
 from ..models.mysql_config import MySQLConfig
 
 def _check_connector_version():
@@ -14,7 +16,7 @@ def _check_connector_version():
 
 # 获取数据库连接和游标
 def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
-    retry_delay_base=5):
+    retry_delay_base=5) -> tuple[MySQLConnectionAbstract | PooledMySQLConnection, MySQLCursorAbstract]:
     """
     建立数据库连接并返回连接对象和游标对象
 
@@ -85,7 +87,6 @@ def connection(sql_config=None, database=None,dict_cursor=False, max_retries=5,
     # Python 中如果一个异常没有被任何 except 子句匹配，它会直接带着原始 traceback 向上传播（报 raise）
 
     # 如果重试次数用完（ 则必然抛出 last_exception ）仍然失败，抛出最后一次的异常
-    if last_exception:
+    if last_exception is not None:
         raise last_exception
-    # else:
-    #     raise Exception("连接失败，已达到最大重试次数")
+    raise Exception("连接失败，已达到最大重试次数")

@@ -1,8 +1,8 @@
 import logging
 import sqlparse
 from typing import Literal
-from mysql.connector.abstracts import MySQLConnectionAbstract
-from mysql.connector.cursor import MySQLCursor
+from mysql.connector.abstracts import MySQLConnectionAbstract, MySQLCursorAbstract
+from mysql.connector.pooling import PooledMySQLConnection
 from .models import FetchConfig, MySQLConfig
 from .utils.connect import connection
 from .tools.sql_utils import resolve_sql
@@ -18,8 +18,8 @@ _RETRYABLE_ERRORS = [
 class SQLExecutor :
     """SQL执行器类，提供统一的数据库操作接口"""
 
-    mydb: MySQLConnectionAbstract | None = None
-    mycursor: MySQLCursor | None = None
+    mydb: MySQLConnectionAbstract | PooledMySQLConnection | None = None
+    mycursor: MySQLCursorAbstract | None = None
 
     def __init__( self , sql_config=None ,database=None,dict_cursor=False) :
         self.sql_config = MySQLConfig.resolve(sql_config)
@@ -107,7 +107,7 @@ class SQLExecutor :
                 self.logger.error("Full SQL (with params):\n%s", formatted_statement)
                 
         # 如果发生错误，回滚事务
-        if needs_rollback:
+        if needs_rollback and self.mydb is not None:
             try:
                 self.mydb.rollback()
             except:
@@ -123,6 +123,8 @@ class SQLExecutor :
         提交数据库事务，支持自动重连和回滚
         :param retry_count: 内部参数，用于记录重试次数，避免无限循环
         """
+        if self.mydb is None:
+            raise RuntimeError("数据库连接已关闭，无法提交事务")
         try :
             self.mydb.commit()
         except Exception as e :
@@ -157,6 +159,8 @@ class SQLExecutor :
         
         """
         sql = resolve_sql(sql)
+        if self.mycursor is None or self.mydb is None:
+            raise RuntimeError("数据库连接已关闭，无法执行SQL")
         try :
             if params :
                 if isinstance(params, dict) or isinstance(params, tuple):
