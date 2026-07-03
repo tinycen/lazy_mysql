@@ -1,8 +1,13 @@
 from .models import MySQLConfig, FetchConfig, DEFAULT_MYSQL_CONFIG
 from .executor import SQLExecutor
 from .utils import insert, upsert, select, exists, update, batch_update, delete, merge_update_lists
-from .tools import NDayInterval, add_limit, load_sql, resolve_sql
+from .tools import NDayInterval, add_limit, load_sql, resolve_sql, build_where_clause
 
+try:
+    from importlib.metadata import version as _get_version
+    __version__ = _get_version("lazy_mysql")
+except Exception:
+    __version__ = "unknown"
 
 
 __author__ = "tinycen"
@@ -16,4 +21,4 @@ __all__ = ['MySQLConfig',
            'FetchConfig', 'NDayInterval',
            'insert', 'upsert', 'select', 'exists',
            'update', 'batch_update', 'delete', 'merge_update_lists',
-           'add_limit', 'load_sql', 'resolve_sql']
+           'add_limit', 'load_sql', 'resolve_sql', 'build_where_clause']
