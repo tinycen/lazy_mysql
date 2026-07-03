@@ -1,5 +1,5 @@
 from ..value_converter import prepare_db_row
-from ...tools.where_clause import build_where_clause
+from ...tools.where_clause import build_where
 
 def update(executor, table_name, fields, conditions, commit=False, self_close=False):
     """
@@ -30,7 +30,7 @@ def update(executor, table_name, fields, conditions, commit=False, self_close=Fa
     set_clause = ', '.join([f"{field} = %s" for field in processed_fields.keys()])
 
     # 构造WHERE子句
-    where_clause, where_params = build_where_clause(conditions)
+    where_clause, where_params = build_where(conditions)
 
     # 合并参数：processed_fields的值 + conditions的值
     params = list(processed_fields.values())

@@ -1,4 +1,4 @@
-from ..tools.where_clause import build_where_clause
+from ..tools.where_clause import build_sql_with_where
 
 def delete(executor, table_name, conditions, commit=False, self_close=False):
     """
@@ -16,11 +16,9 @@ def delete(executor, table_name, conditions, commit=False, self_close=False):
             executor.close()
         raise ValueError("conditions 不能为空，这会导致删除所有记录")
 
-    # 构造WHERE子句
-    where_clause, params = build_where_clause(conditions)
-
     # 构造SQL语句
-    sql = f'''DELETE FROM {table_name} WHERE {where_clause};'''
+    sql, params = build_sql_with_where(f"DELETE FROM {table_name}", conditions)
+    sql += ";"
 
     # 执行SQL
     executor.execute(sql, params, commit, self_close)

@@ -39,7 +39,7 @@ def _validate_param_value(param_value, field_name):
     return param_value
 
 
-def build_where_clause( conditions ) :
+def build_where(conditions):
     """
     构造WHERE子句和对应的参数列表
 
@@ -62,23 +62,23 @@ def build_where_clause( conditions ) :
 
     :example:
         >>> conditions = {'name': '张三', 'age': ('>', 18)}
-        >>> clause, params = build_where_clause(conditions)
+        >>> clause, params = build_where(conditions)
         >>> print(clause)  # 输出: name = %s AND age > %s
         >>> print(params)  # 输出: ['张三', 18]
 
         >>> from lazy_mysql.tools.where_clause import NDayInterval
         >>> conditions = {'order_dateTime': ('>=', NDayInterval(7))}
-        >>> clause, params = build_where_clause(conditions)
+        >>> clause, params = build_where(conditions)
         >>> print(clause)  # 输出: order_dateTime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
         >>> print(params)  # 输出: []
 
         >>> conditions = {'status': ('IN', [1, 2, 3]), 'create_time': ('>=', '2023-01-01')}
-        >>> clause, params = build_where_clause(conditions)
+        >>> clause, params = build_where(conditions)
         >>> print(clause)  # 输出: status IN (%s, %s, %s) AND create_time >= %s
         >>> print(params)  # 输出: [1, 2, 3, '2023-01-01']
 
         >>> conditions = {'deleted_at': 'NULL', 'email': 'NOT NULL'}
-        >>> clause, params = build_where_clause(conditions)
+        >>> clause, params = build_where(conditions)
         >>> print(clause)  # 输出: deleted_at IS NULL AND email IS NOT NULL
         >>> print(params)  # 输出: []
     """
@@ -124,3 +124,29 @@ def build_where_clause( conditions ) :
 
     where_clause = ' AND '.join(clauses)
     return where_clause , params
+
+
+def build_sql_with_where(base_sql, conditions):
+    """
+    在基础SQL后拼接WHERE子句，返回完整SQL和参数列表
+
+    该方法是对 build_where 的便捷封装，适用于调用方已有基础SQL语句、
+    只需动态追加WHERE条件的场景。如果 conditions 为空，则直接返回基础SQL和空参数列表。
+
+    :param base_sql: 基础SQL语句（不带WHERE关键字），如 "SELECT * FROM users"
+    :param conditions: WHERE条件，格式同 build_where 的 conditions 参数
+    :return: tuple - (sql, params)
+        - sql: str - 拼接好WHERE子句后的完整SQL语句
+        - params: list - 对应的参数值列表
+
+    :example:
+        >>> base_sql = "SELECT * FROM users"
+        >>> conditions = {'name': '张三', 'age': ('>', 18)}
+        >>> sql, params = build_sql_with_where(base_sql, conditions)
+        >>> print(sql)  # 输出: SELECT * FROM users WHERE name = %s AND age > %s
+        >>> print(params)  # 输出: ['张三', 18]
+    """
+    where_clause, params = build_where(conditions)
+    if where_clause:
+        return f"{base_sql} WHERE {where_clause}", params
+    return base_sql, []

@@ -1,4 +1,4 @@
-from ..tools.where_clause import build_where_clause
+from ..tools.where_clause import build_sql_with_where
 from ..models.fetch_config import FetchConfig
 from ..tools.result_formatter import fetch_format
 
@@ -113,9 +113,7 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
         raise ValueError("table_names must be a string or a list of strings")
 
     # 构造WHERE子句
-    where_clause, params = build_where_clause(conditions)
-    if where_clause:
-        sql += f" WHERE {where_clause}"
+    sql, params = build_sql_with_where(sql, conditions)
 
     # 添加ORDER BY子句（如果提供）
     if order_by:
@@ -224,9 +222,7 @@ def exists(executor, table_names, conditions=None, join_conditions=None, self_cl
         raise ValueError("table_names must be a string or a list of strings")
 
     # 构造WHERE子句
-    where_clause, params = build_where_clause(conditions)
-    if where_clause:
-        sql += f" WHERE {where_clause}"
+    sql, params = build_sql_with_where(sql, conditions)
 
     # 添加 LIMIT 1 优化性能
     sql += " LIMIT 1"

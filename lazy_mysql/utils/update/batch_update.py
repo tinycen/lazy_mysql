@@ -1,6 +1,6 @@
 import pandas as pd
 from ..value_converter import prepare_db_value
-from ...tools.where_clause import build_where_clause
+from ...tools.where_clause import build_where
 
 
 def batch_update(executor, table_name, update_list, commit=False, self_close=False):
@@ -153,7 +153,7 @@ def _build_case_clauses_complex(update_list, all_fields):
         conditions = item['conditions']
         
         # 构建WHERE条件
-        where_clause, where_params = build_where_clause(conditions)
+        where_clause, where_params = build_where(conditions)
         
         # 防御：检查 where_clause 不能为 None
         if where_clause is None or where_params is None:
@@ -282,7 +282,7 @@ def _build_complex_update_sql(table_name, update_list, all_fields):
     
     注意：
     - 不同记录的WHERE条件用OR连接（表示更新满足任一条件的记录）
-    - 每条记录内部的多个条件用AND连接（由build_where_clause处理）
+    - 每条记录内部的多个条件用AND连接（由build_where处理）
     - CASE WHEN会精确匹配每个条件并更新对应的值
     
     :return: (sql, params) - SQL语句和参数元组
