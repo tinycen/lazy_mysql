@@ -124,7 +124,7 @@ result = add_limit('create_time', '2023-01-01', 'u', operator='>=')
 ### 注意事项
 
 1. **SQL注入防护**: 函数会自动为字符串值添加引号，但在实际使用中建议结合参数化查询
-2. **性能考虑**: 对于大量条件组合，建议使用 `build_where_clause` 函数
+2. **性能考虑**: 对于大量条件组合，建议使用 `build_where` 函数
 3. **数据类型**: 所有值都会被转换为字符串并添加引号，数字类型也不例外
 4. **大小写敏感**: 运算符不区分大小写，`LIKE` 和 `like` 效果相同
 
@@ -164,8 +164,9 @@ print(sql_content)
 
 ### 相关函数
 - [resolve_sql](#resolve_sql---智能解析SQL参数) - 自动判断 SQL 文本或文件路径
-- [build_where_clause](SELECT.md#build_where_clause) - 构建完整的WHERE子句
-- [NDayInterval](SELECT.md#ndayinterval) - 日期区间处理
+- [build_where](CONDITIONS.md#build_where) - 构建WHERE子句和参数列表
+- [build_sql_with_where](CONDITIONS.md#build_sql_with_where) - 在基础SQL后拼接WHERE子句
+- [NDayInterval](CONDITIONS.md#日期区间筛选ndayinterval) - 日期区间处理
 
 ### 更新日志
 - v0.1.1: 从 `where_clause.py` 移动到 `sql_utils.py`

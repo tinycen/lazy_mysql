@@ -38,20 +38,13 @@ config = MySQLConfig(
     database='your_database'
 )
 
-# 创建执行器实例
-executor = SQLExecutor(config)
-
-# 指定数据库（覆盖配置中的 database）
-executor = SQLExecutor(config, database='another_db')
-
-# 使用字典游标返回结果
-executor = SQLExecutor(config, dict_cursor=True)
+# 指定数据库
+executor = SQLExecutor(config, database='database')
 
 # 不传入配置时自动从环境变量读取：
 # LAZY_MYSQL_HOST / LAZY_MYSQL_PORT / LAZY_MYSQL_USER / LAZY_MYSQL_PASSWD / LAZY_MYSQL_DATABASE
-executor = SQLExecutor()
 
-# 也支持混合配置：host/user/passwd 从环境变量读取，database 由参数指定
+# 支持混合配置：host/user/passwd 从环境变量读取，database 由参数指定
 executor = SQLExecutor(database='another_db')
 ```
 ### 2. 智能查询操作
@@ -91,46 +84,7 @@ results = executor.select(
 
 ```
 
-### 3. 批量数据插入
-
-```python
-# 单条插入
-executor.insert('users', {'name': '张三', 'email': 'zhang@example.com'}, commit=True)
-
-# 批量插入（自动优化策略）
-users_data = [
-    {'name': '李四', 'email': 'li@example.com', 'age': 25},
-    {'name': '王五', 'email': 'wang@example.com', 'age': 30},
-    # ... 支持数千条记录
-]
-inserted_count = executor.insert('users', users_data, commit=True)
-
-# Upsert操作（存在更新，不存在插入）
-user_data = {
-    'id': 1,
-    'name': '张三',
-    'email': 'new_email@example.com',
-    'updated_at': '2024-01-15 10:00:00'
-}
-executor.upsert('users', user_data, commit=True)
-```
-
-### 4. 数据更新与删除
-
-```python
-# 条件更新
-executor.update(
-    'users',
-    {'status': 'premium', 'updated_at': '2024-01-15 10:00:00'},
-    conditions={'last_login': ('>=', '2024-01-01'), 'points': ('>=', 1000)},
-    commit=True
-)
-
-# 安全删除（必须指定条件）
-executor.delete('users', conditions={'status': 'inactive', 'last_login': ('<', '2023-01-01')}, commit=True)
-```
-
-### 5. 使用完毕后关闭连接
+### 3. 使用完毕后关闭连接
 
 ```python
 # 直接关闭数据库连接
@@ -157,39 +111,20 @@ executor.commit_close()
 - [DELETE 删除操作](docs/DELETE.md) - 安全删除、条件组合、错误处理、调试技巧
 
 ### 🛠️ SQL工具函数
-- [SQL工具函数](docs/SQL_UTILS.md) - add_limit条件构建、resolve_sql智能路径解析、load_sql文件加载
-
-
-## 🔧 环境要求
-
-- **Python**: 3.7+
-- **MySQL**: 8.0.36+
-- **依赖库**:
-  - `mysql-connector-python>=9.4.0`
-  - `pandas>=2.3.1`
-
-> ⚠️ **兼容性说明**: 低于上述版本要求的兼容性尚未验证
-
-## 🎯 适用场景
-
-- ✅ **Web应用开发** - 快速原型开发、API后端服务
-- ✅ **数据分析** - DataFrame集成、报表生成、数据清洗
-- ✅ **批量数据处理** - 日志导入、数据迁移、ETL流程
-- ✅ **企业级应用** - 事务处理、并发控制、错误重试
-
-## 🏆 性能优势
-
-| 操作类型 | 传统方式 | lazy_mysql优化 | 性能提升 |
-|---------|---------|---------------|----------|
-| 批量插入1万条 | 3-5秒 | 0.5-1秒 | **5-10倍** |
-| 批量插入10万条 | 30-60秒 | 2-5秒 | **15-30倍** |
-| 复杂条件查询 | 手动拼接SQL | 智能构建 | **开发效率3倍** |
-| 大数据导出 | 内存占用高 | 流式处理 | **内存节省80%** |
+- [SQL工具函数](docs/SQL_UTILS.md) - add_limit条件构建、build_where/build_sql_with_where WHERE子句构建、resolve_sql智能路径解析、load_sql文件加载
 
 ## 📦 PyPI 项目
 
 项目已发布到PyPI，可通过以下链接访问：
 - **PyPI主页**: https://pypi.org/project/lazy-mysql/
+
+## 🔧 环境要求
+
+- **Python**: 3.10+
+- **MySQL**: 8.0.36+
+- **依赖库**:
+  - `mysql-connector-python>=9.4.0`
+  - `pandas>=2.3.1`
 
 ## 📄 开源协议
 

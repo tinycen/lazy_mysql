@@ -155,6 +155,39 @@ executor.delete('users', conditions={'id': 1})
 executor.delete('logs', conditions={'created_at': ('<', NDayInterval(30))})
 ```
 
+## 独立函数使用
+
+除了通过 `select()`、`update()`、`delete()` 等方法间接使用 conditions 外，也可以直接调用 `build_where` 和 `build_sql_with_where` 函数来构建 WHERE 子句。
+
+### build_where
+
+直接构造 WHERE 子句和对应的参数列表：
+
+```python
+from lazy_mysql import build_where
+
+conditions = {'name': '张三', 'age': ('>', 18)}
+clause, params = build_where(conditions)
+print(clause)  # 输出: name = %s AND age > %s
+print(params)  # 输出: ['张三', 18]
+```
+
+### build_sql_with_where
+
+在基础 SQL 后拼接 WHERE 子句，返回完整 SQL 和参数列表：
+
+```python
+from lazy_mysql import build_sql_with_where
+
+base_sql = "SELECT * FROM users"
+conditions = {'name': '张三', 'age': ('>', 18)}
+sql, params = build_sql_with_where(base_sql, conditions)
+print(sql)  # 输出: SELECT * FROM users WHERE name = %s AND age > %s
+print(params)  # 输出: ['张三', 18]
+```
+
+> 如果 `conditions` 为空，`build_sql_with_where` 会直接返回基础 SQL 和空参数列表，不会拼接 `WHERE` 关键字。
+
 ## 注意事项
 
 1. **参数安全**：所有值都会使用参数化查询，防止 SQL 注入

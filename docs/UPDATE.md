@@ -248,11 +248,11 @@ def safe_update(table, fields, conditions):
 def debug_update(table, fields, conditions):
     """调试模式：显示生成的SQL"""
     from lazy_mysql.utils.update import update as update_func
-    from lazy_mysql.tools.where_clause import build_where_clause
+    from lazy_mysql.tools.where_clause import build_where
     
     # 构建SQL
     set_clause = ', '.join([f"{field} = %s" for field in fields.keys()])
-    where_clause, params = build_where_clause(conditions)
+    where_clause, params = build_where(conditions)
     
     sql = f"UPDATE {table} SET {set_clause} WHERE {where_clause};"
     print(f"Generated SQL: {sql}")
