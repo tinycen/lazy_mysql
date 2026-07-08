@@ -1,17 +1,12 @@
 import os
-import re
 
 import sqlparse
+from .validate import validate_table_name
+from ..executor import SQLExecutor
 
 
-def _validate_table_name(table_name: str) -> str:
-    """校验表名，仅允许字母、数字、下划线，防止 SQL 注入"""
-    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table_name):
-        raise ValueError(f"Invalid table name: {table_name}")
-    return table_name
 
-
-def table_md(executor, table_name, save_path=None, self_close=True):
+def table_md(executor: SQLExecutor, table_name, save_path=None, self_close=True):
     """
     将 table/view 中的字段和字段类型,字段描述,是否主键,索引导出为md格式文件
     - 自动识别视图并委托 view_md 处理
@@ -21,7 +16,7 @@ def table_md(executor, table_name, save_path=None, self_close=True):
     :param self_close: 是否自动关闭连接
     :return: None
     """
-    table_name = _validate_table_name(table_name)
+    table_name = validate_table_name(table_name)
 
     # 自动识别视图，委托 view_md 处理
     if _is_view(executor, table_name):
@@ -144,7 +139,7 @@ def table_md(executor, table_name, save_path=None, self_close=True):
         md_file.write(md_content)
 
 
-def _is_view(executor, table_name: str) -> bool:
+def _is_view(executor: SQLExecutor, table_name: str) -> bool:
     """判断表名是否为视图"""
     executor.execute("SHOW FULL TABLES LIKE %s", params=(table_name,), self_close=False)
     row = executor.mycursor.fetchone()
@@ -153,7 +148,7 @@ def _is_view(executor, table_name: str) -> bool:
     return False
 
 
-def _get_view_source(executor, view_name: str) -> str:
+def _get_view_source(executor: SQLExecutor, view_name: str) -> str:
     """获取视图的源 SQL 文本，并格式化为可读格式"""
     executor.execute(f"SHOW CREATE VIEW {view_name}", self_close=False)
     row = executor.mycursor.fetchone()
@@ -169,7 +164,7 @@ def _get_view_source(executor, view_name: str) -> str:
     return ""
 
 
-def view_md(executor, view_name, save_path=None, self_close=True):
+def view_md(executor: SQLExecutor, view_name, save_path=None, self_close=True):
     """
     将视图的字段结构、字段描述和源 SQL 导出为 md 格式文件
     :param executor: SQLExecutor 实例
@@ -178,7 +173,7 @@ def view_md(executor, view_name, save_path=None, self_close=True):
     :param self_close: 是否自动关闭连接
     :return: None
     """
-    view_name = _validate_table_name(view_name)
+    view_name = validate_table_name(view_name)
 
     # 检查视图是否存在
     executor.execute("SHOW FULL TABLES LIKE %s", params=(view_name,), self_close=False)
@@ -229,7 +224,7 @@ def view_md(executor, view_name, save_path=None, self_close=True):
         md_file.write(md_content)
 
 
-def tables_md(executor, table_names=None, save_dir=None, self_close=True):
+def tables_md(executor: SQLExecutor, table_names=None, save_dir=None, self_close=True):
     """
     批量导出表结构和视图结构为md格式文件
     - 表导出到 save_dir 目录
@@ -312,3 +307,26 @@ def tables_md(executor, table_names=None, save_dir=None, self_close=True):
         if self_close:
             executor.close()
         raise Exception(f"Batch export failed: {str(e)}")
+
+
+def export_md(executor: SQLExecutor, table_name, save_path=None, self_close=True):
+    """
+    将 table/view 中的字段和字段类型，导出为md格式文件
+    :param executor: SQLExecutor 实例
+    :param table_name: 表名或表名列表，支持字符串或列表.[]/()表示导出所有表和视图
+    :param save_path: 保存路径，当导出单个表时为文件路径，导出多个表时为目录路径
+    :param self_close: 是否自动关闭连接
+    :return: 当导出单个表时为None，导出多个表时返回 dict（含 'tables' 和 'views'）
+    """
+    # 判断table_name类型
+    if isinstance(table_name, str):
+        # 单个表/视图导出，table_md 内部自动识别视图
+        table_md(executor, table_name, save_path, self_close)
+        return None
+    elif isinstance(table_name, (list, tuple)):
+        # 批量导出
+        return tables_md(executor, table_name, save_path, self_close)
+    else:
+        # 默认按字符串处理
+        table_md(executor, str(table_name), save_path, self_close)
+        return None
