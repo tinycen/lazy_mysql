@@ -15,15 +15,10 @@ def fix_json(executor: SQLExecutor, table_name: str, index_column: str, target_c
         :param self_close: 是否关闭连接池
        """
     validate_table_name(table_name)
-    # 查找无效的 JSON 值
-    sql = """ SELECT %{index_column}s, %{target_column}s 
-        FROM %{table_name} WHERE %{target_column}s IS NOT NULL AND NOT JSON_VALID(%{target_column}s) """
-    params = {
-        'index_column': index_column,
-        'target_column': target_column,
-        'table_name': table_name,
-    }
-    result = executor.execute(sql, params)
+    # 查找无效的 JSON 值（表名/列名是标识符，不能走 SQL 参数占位符，需用 Python 字符串格式化）
+    sql = f""" SELECT {index_column}, {target_column}
+        FROM {table_name} WHERE {target_column} IS NOT NULL AND NOT JSON_VALID({target_column}) """
+    result = executor.execute(sql)
     fixed = 0
     failed = []
     update_list = []
