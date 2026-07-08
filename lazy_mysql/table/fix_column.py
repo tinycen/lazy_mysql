@@ -26,25 +26,26 @@ def fix_json(executor: SQLExecutor, table_name: str, index_column: str, target_c
     result = executor.execute(sql, params)
     fixed = 0
     failed = []
+    update_list = []
     for index, old_value in result:
         try:
             # ast.literal_eval 能解析单引号的 Python 字面量
             obj = ast.literal_eval(old_value)
             # 转为标准 JSON（双引号）
             new_value = json.dumps(obj, ensure_ascii=False)
-            params = {
-                'new_value': new_value,
-                'index': index,
-            }
-            executor.execute("UPDATE %{table_name} SET %{target_column}s=%{new_value}s WHERE %{index_column}s=%{index}s", params)
+            update_list.append({
+                'fields': {target_column: new_value},
+                'conditions': {index_column: index},
+            })
             fixed += 1
-            if commit:
-                executor.commit()
         except Exception as e:
             failed.append((index, str(e)[:100]))
 
-    if self_close:
+    if update_list:
+        executor.batch_update(table_name, update_list, commit=commit, self_close=self_close)
+    elif self_close:
         executor.close()
+
     print(f"成功修复 {fixed} 行，失败 {len(failed)} 行")
     for f in failed:
         print(f)
