@@ -237,7 +237,7 @@ def _bulk_insert_load_data(executor, table_name, fields, skip_duplicate=False,
                 pass  # 忽略文件删除错误
     
     finally:
-        if self_close and commit :
+        if self_close:
             executor.close()
     
     print(f"[LOAD DATA] All completed! Total {inserted_count} records inserted")
@@ -280,7 +280,7 @@ def _executemany_optimized(executor, table_name, fields, skip_duplicate=False,
             print(f"[executemany] Batch {batch_num}/{total_batches} completed, inserted {inserted_count}/{total_records} records")
     
     finally:
-        if self_close and commit :
+        if self_close:
             executor.close()
     
     print(f"[executemany] All completed! Total {inserted_count} records inserted")

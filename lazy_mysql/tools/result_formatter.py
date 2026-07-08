@@ -42,7 +42,7 @@ def fetch_format( executor , sql , fetch_mode: Literal["all", "oneTuple", "one"]
         if output_format == "list_1" :
             if myresult is None :
                 return [ ]
-            data = [ myresult[ 0 ] for myresult in myresult ] if myresult else [ ]
+            data = [ row[ 0 ] for row in myresult ] if myresult else [ ]
             myresult = data
         elif "df" in output_format :
             myresult = pd.DataFrame( myresult , columns = data_label )
