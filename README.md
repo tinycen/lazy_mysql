@@ -113,6 +113,9 @@ executor.commit_close()
 ### 🛠️ SQL工具函数
 - [SQL工具函数](docs/SQL_UTILS.md) - add_limit条件构建、build_where/build_sql_with_where WHERE子句构建、resolve_sql智能路径解析、load_sql文件加载
 
+### 🗂️ 表结构工具
+- [Table 表结构工具](docs/table.md) - 表/视图结构一键导出为 Markdown、TEXT 列 JSON 修复、表名校验防注入
+
 ## 📦 PyPI 项目
 
 项目已发布到PyPI，可通过以下链接访问：
