@@ -1,5 +1,4 @@
 import os
-
 import sqlparse
 from .validate import validate_table_name
 from ..executor import SQLExecutor
@@ -309,7 +308,7 @@ def tables_md(executor: SQLExecutor, table_names=None, save_dir=None, self_close
         raise Exception(f"Batch export failed: {str(e)}")
 
 
-def export_md(executor: SQLExecutor, table_name, save_path=None, self_close=True):
+def export_md(executor: SQLExecutor, table_name:str, save_path=None, self_close=True):
     """
     将 table/view 中的字段和字段类型，导出为md格式文件
     :param executor: SQLExecutor 实例

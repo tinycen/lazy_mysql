@@ -1,0 +1,7 @@
+{
+  "include": ["lazy_mysql"],
+  "reportOptionalMemberAccess": false,
+  "reportAttributeAccessIssue": false,
+  "reportArgumentType": false,
+  "reportOperatorIssue": false
+}
