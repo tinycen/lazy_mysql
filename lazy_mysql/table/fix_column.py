@@ -1,0 +1,51 @@
+import ast
+import json
+from .validate import validate_table_name
+from ..executor import SQLExecutor
+
+
+def fix_json(executor: SQLExecutor, table_name: str, index_column: str, target_column: str,
+            commit = False , self_close = False):
+    """修复 JSON 类型列, 把 TEXT 类型列 > 转为 JSON 类型列
+        :param executor: SQLExecutor 实例
+        :param table_name: 表名
+        :param index_column: 索引列名
+        :param target_column: 目标列名
+        :param commit: 是否提交事务
+        :param self_close: 是否关闭连接池
+       """
+    validate_table_name(table_name)
+    # 查找无效的 JSON 值
+    sql = """ SELECT %{index_column}s, %{target_column}s 
+        FROM %{table_name} WHERE %{target_column}s IS NOT NULL AND NOT JSON_VALID(%{target_column}s) """
+    params = {
+        'index_column': index_column,
+        'target_column': target_column,
+        'table_name': table_name,
+    }
+    result = executor.execute(sql, params)
+    fixed = 0
+    failed = []
+    for index, old_value in result:
+        try:
+            # ast.literal_eval 能解析单引号的 Python 字面量
+            obj = ast.literal_eval(old_value)
+            # 转为标准 JSON（双引号）
+            new_value = json.dumps(obj, ensure_ascii=False)
+            params = {
+                'new_value': new_value,
+                'index': index,
+            }
+            executor.execute("UPDATE %{table_name} SET %{target_column}s=%{new_value}s WHERE %{index_column}s=%{index}s", params)
+            fixed += 1
+            if commit:
+                executor.commit()
+        except Exception as e:
+            failed.append((index, str(e)[:100]))
+
+    if self_close:
+        executor.close()
+    print(f"成功修复 {fixed} 行，失败 {len(failed)} 行")
+    for f in failed:
+        print(f)
+    return failed
