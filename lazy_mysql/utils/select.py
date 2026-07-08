@@ -2,6 +2,55 @@ from ..tools.where_clause import build_sql_with_where
 from ..models.fetch_config import FetchConfig
 from ..tools.result_formatter import fetch_format
 
+
+def _build_query_sql(select_expr, table_names, conditions=None, join_conditions=None):
+    """
+    构造 SELECT 语句的 FROM / JOIN / WHERE 部分（select 与 exists 共用）
+
+    :param select_expr: SELECT 关键字后的表达式，如字段列表或 "1"
+    :param table_names: 表名，字符串或列表（列表表示需要 JOIN）
+    :param conditions: WHERE 条件字典
+    :param join_conditions: JOIN 条件字典
+    :return: (sql, params)
+    """
+    # 处理表名
+    if isinstance(table_names, str):
+        # 单个表
+        sql = f"SELECT {select_expr} FROM {table_names}"
+    elif isinstance(table_names, list):
+        # 多个表，需要JOIN
+        main_table = table_names[0]
+        sql = f"SELECT {select_expr} FROM {main_table}"
+
+        # 添加JOIN子句
+        if join_conditions:
+            # JOIN操作，table_names必须是包含至少两个表名的列表
+            if len(table_names) < 2:
+                raise ValueError("存在JOIN操作时，table_names必须是包含至少两个表名的列表")
+            join_type = join_conditions.get("join_type", "JOIN")
+            join_conds = join_conditions.get("conditions", [])
+
+            # 为每个额外的表添加JOIN子句
+            for join_table in table_names[1:]:
+                # 如果提供了具体的JOIN条件，则使用它
+                if join_conds and len(join_conds) >= 3:
+                    field1, operator, field2 = join_conds[0], join_conds[1], join_conds[2]
+                    # 如果字段名没有表前缀，添加主表前缀
+                    if '.' not in field1:
+                        field1 = f"{main_table}.{field1}"
+                    if '.' not in field2:
+                        field2 = f"{join_table}.{field2}"
+                    sql += f" {join_type} {join_table} ON {field1} {operator} {field2}"
+                else:
+                    # 默认使用item_id进行JOIN
+                    sql += f" {join_type} {join_table} ON {main_table}.item_id = {join_table}.item_id"
+    else:
+        raise ValueError("table_names must be a string or a list of strings")
+
+    # 构造WHERE子句
+    sql, params = build_sql_with_where(sql, conditions)
+    return sql, params
+
 def select(executor, table_names, fields=None, conditions=None, order_by=None, limit:int|None=None,
            distinct:bool=False, join_conditions=None, self_close:bool=False, fetch_config=None):
     """
@@ -78,42 +127,9 @@ def select(executor, table_names, fields=None, conditions=None, order_by=None, l
     # 处理DISTINCT
     distinct_clause = "DISTINCT " if distinct else ""
 
-    # 处理表名
-    if isinstance(table_names, str):
-        # 单个表
-        sql = f"SELECT {distinct_clause}{select_clause} FROM {table_names}"
-    elif isinstance(table_names, list):
-        # 多个表，需要JOIN
-        main_table = table_names[0]
-        sql = f"SELECT {distinct_clause}{select_clause} FROM {main_table}"
-        
-        # 添加JOIN子句
-        if join_conditions:
-            # JOIN操作，table_names必须是包含至少两个表名的列表
-            if len(table_names) < 2:
-                raise ValueError("存在JOIN操作时，table_names必须是包含至少两个表名的列表")
-            join_type = join_conditions.get("join_type", "JOIN")
-            join_conds = join_conditions.get("conditions", [])
-
-            # 为每个额外的表添加JOIN子句
-            for i, join_table in enumerate(table_names[1:], start=1):
-                # 如果提供了具体的JOIN条件，则使用它
-                if join_conds and len(join_conds) >= 3:
-                    field1, operator, field2 = join_conds[0], join_conds[1], join_conds[2]
-                    # 如果字段名没有表前缀，添加主表前缀
-                    if '.' not in field1:
-                        field1 = f"{main_table}.{field1}"
-                    if '.' not in field2:
-                        field2 = f"{join_table}.{field2}"
-                    sql += f" {join_type} {join_table} ON {field1} {operator} {field2}"
-                else:
-                    # 默认使用item_id进行JOIN
-                    sql += f" {join_type} {join_table} ON {main_table}.item_id = {join_table}.item_id"
-    else:
-        raise ValueError("table_names must be a string or a list of strings")
-
-    # 构造WHERE子句
-    sql, params = build_sql_with_where(sql, conditions)
+    # 构造FROM/JOIN/WHERE子句
+    select_expr = f"{distinct_clause}{select_clause}"
+    sql, params = _build_query_sql(select_expr, table_names, conditions, join_conditions)
 
     # 添加ORDER BY子句（如果提供）
     if order_by:
@@ -187,42 +203,8 @@ def exists(executor, table_names, conditions=None, join_conditions=None, self_cl
         >>> executor.exists('orders', {'created_at': ('>=', NDayInterval(7))})
         True
     """
-    # 处理表名
-    if isinstance(table_names, str):
-        # 单个表
-        sql = f"SELECT 1 FROM {table_names}"
-    elif isinstance(table_names, list):
-        # 多个表，需要JOIN
-        main_table = table_names[0]
-        sql = f"SELECT 1 FROM {main_table}"
-
-        # 添加JOIN子句
-        if join_conditions:
-            # JOIN操作，table_names必须是包含至少两个表名的列表
-            if len(table_names) < 2:
-                raise ValueError("存在JOIN操作时，table_names必须是包含至少两个表名的列表")
-            join_type = join_conditions.get("join_type", "JOIN")
-            join_conds = join_conditions.get("conditions", [])
-
-            # 为每个额外的表添加JOIN子句
-            for i, join_table in enumerate(table_names[1:], start=1):
-                # 如果提供了具体的JOIN条件，则使用它
-                if join_conds and len(join_conds) >= 3:
-                    field1, operator, field2 = join_conds[0], join_conds[1], join_conds[2]
-                    # 如果字段名没有表前缀，添加主表前缀
-                    if '.' not in field1:
-                        field1 = f"{main_table}.{field1}"
-                    if '.' not in field2:
-                        field2 = f"{join_table}.{field2}"
-                    sql += f" {join_type} {join_table} ON {field1} {operator} {field2}"
-                else:
-                    # 默认使用item_id进行JOIN
-                    sql += f" {join_type} {join_table} ON {main_table}.item_id = {join_table}.item_id"
-    else:
-        raise ValueError("table_names must be a string or a list of strings")
-
-    # 构造WHERE子句
-    sql, params = build_sql_with_where(sql, conditions)
+    # 构造FROM/JOIN/WHERE子句（SELECT 1 ... LIMIT 1 优化）
+    sql, params = _build_query_sql("1", table_names, conditions, join_conditions)
 
     # 添加 LIMIT 1 优化性能
     sql += " LIMIT 1"
