@@ -1,10 +1,13 @@
+import json
 import logging
 import sqlparse
 from typing import Literal
 from mysql.connector.abstracts import MySQLConnectionAbstract, MySQLCursorAbstract
 from mysql.connector.pooling import PooledMySQLConnection
+from sqlparse.exceptions import SQLParseError
 from .models import FetchConfig, MySQLConfig
 from .utils.connect import connection
+from .tools.log_utils import truncate_long_in_lists, truncate_params_for_log
 from .tools.sql_utils import resolve_sql
 
 # 定义需要重试的错误信息常量
@@ -95,16 +98,43 @@ class SQLExecutor :
                 # 继续执行原始的错误处理流程
         
         if sql:
-            formatted_sql = sqlparse.format(sql, reindent=True, keyword_case='upper')
-            self.logger.error("SQL:\n%s", formatted_sql)
+            try:
+                sql_for_log = truncate_long_in_lists(sql)
+                if sql_for_log['truncated']:
+                    self.logger.warning(
+                        "SQL 中以下 IN/NOT IN 列表已截断（仅用于日志展示）：\n%s",
+                        json.dumps(sql_for_log['details'], ensure_ascii=False, indent=2)
+                    )
+                formatted_sql = sqlparse.format(sql_for_log['sql'], reindent=True, keyword_case='upper')
+                self.logger.error("SQL:\n%s", formatted_sql)
+            except SQLParseError:
+                self.logger.error("SQL (raw):\n%s", sql)
             if params is not None:
-                self.logger.error("Params: %s", params)
+                log_params = truncate_params_for_log(params)
+                if log_params['truncated']:
+                    self.logger.warning(
+                        "Params 列表已截断（仅用于日志展示）：\n%s",
+                        json.dumps(
+                            {k: v for k, v in log_params.items() if k != 'params'},
+                            ensure_ascii=False, indent=2
+                        )
+                    )
+                self.logger.error("Params: %s", log_params['params'])
 
             # 获取游标中已填充参数的完整SQL语句
             full_statement = getattr(self.mycursor, 'statement', None)
             if full_statement:
-                formatted_statement = sqlparse.format(full_statement, reindent=True, keyword_case='upper')
-                self.logger.error("Full SQL (with params):\n%s", formatted_statement)
+                try:
+                    statement_for_log = truncate_long_in_lists(full_statement)
+                    if statement_for_log['truncated']:
+                        self.logger.warning(
+                            "Full SQL 中以下 IN/NOT IN 列表已截断（仅用于日志展示）：\n%s",
+                            json.dumps(statement_for_log['details'], ensure_ascii=False, indent=2)
+                        )
+                    formatted_statement = sqlparse.format(statement_for_log['sql'], reindent=True, keyword_case='upper')
+                    self.logger.error("Full SQL (with params):\n%s", formatted_statement)
+                except SQLParseError:
+                    self.logger.error("Full SQL (with params, raw):\n%s", full_statement)
                 
         # 如果发生错误，回滚事务
         if needs_rollback and self.mydb is not None:
