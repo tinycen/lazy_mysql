@@ -99,8 +99,10 @@ class SQLExecutor :
         
         if sql:
         # 避免在 commit 这种没有 SQL 语句的场景下打印空 SQL 日志的，保留 if 更合理。
+            sql_truncation_details = []
             try:
                 sql_for_log = truncate_long_in_lists(sql)
+                sql_truncation_details = sql_for_log['details']
                 if sql_for_log['truncated']:
                     self.logger.warning(
                         "SQL 中以下 IN/NOT IN 列表已截断（仅用于日志展示）：\n%s",
@@ -128,10 +130,12 @@ class SQLExecutor :
                 try:
                     statement_for_log = truncate_long_in_lists(full_statement)
                     if statement_for_log['truncated']:
-                        self.logger.warning(
-                            "Full SQL 中以下 IN/NOT IN 列表已截断（仅用于日志展示）：\n%s",
-                            json.dumps(statement_for_log['details'], ensure_ascii=False, indent=2)
-                        )
+                        # 如果 Full SQL 与 SQL 的截断详情相同，避免重复输出警告
+                        if statement_for_log['details'] != sql_truncation_details:
+                            self.logger.warning(
+                                "Full SQL 中以下 IN/NOT IN 列表已截断（仅用于日志展示）：\n%s",
+                                json.dumps(statement_for_log['details'], ensure_ascii=False, indent=2)
+                            )
                     formatted_statement = sqlparse.format(statement_for_log['sql'], reindent=True, keyword_case='upper')
                     self.logger.error("Full SQL (with params):\n%s", formatted_statement)
                 except SQLParseError:
