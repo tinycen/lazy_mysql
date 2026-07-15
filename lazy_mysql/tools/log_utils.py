@@ -1,9 +1,9 @@
 import re
 
 # 错误日志中 IN/NOT IN 列表与 params 截断阈值
-_IN_TRUNCATION_THRESHOLD = 50     # IN 列表元素超过此数量才截断
+_IN_TRUNCATION_THRESHOLD = 30     # IN 列表元素超过此数量才截断
 _MAX_IN_ITEMS_FOR_LOG = 10        # IN 列表截断后保留的元素数量
-_MAX_PARAMS_FOR_LOG = 50          # params 日志最多显示数量
+_MAX_PARAMS_FOR_LOG = 30          # params 日志最多显示数量
 _MAX_PARAMS_HEAD_FOR_LOG = 10     # params 截断后保留头部数量
 
 

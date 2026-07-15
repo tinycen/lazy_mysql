@@ -98,6 +98,7 @@ class SQLExecutor :
                 # 继续执行原始的错误处理流程
         
         if sql:
+        # 避免在 commit 这种没有 SQL 语句的场景下打印空 SQL 日志的，保留 if 更合理。
             try:
                 sql_for_log = truncate_long_in_lists(sql)
                 if sql_for_log['truncated']:
@@ -646,4 +647,3 @@ class SQLExecutor :
         # 调用底层 fetch_format 执行查询并格式化结果
         result = self.fetch_format(sql, fetch_mode, output_format, show_count, data_label, params, self_close)
         return result
-
