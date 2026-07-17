@@ -101,16 +101,6 @@ def _check_simple_case(df_conditions):
     return True, key_field
 
 
-def _process_update_value(value):
-    """
-    统一处理更新值，复用公共写入类型转换逻辑
-    
-    :param value: 原始值
-    :return: 处理后的值
-    """
-    return prepare_db_value(value)
-
-
 def _build_case_clauses_simple(update_list, all_fields, key_field):
     """
     构建简化模式的CASE子句数据结构
@@ -129,7 +119,7 @@ def _build_case_clauses_simple(update_list, all_fields, key_field):
         
         for field in all_fields:
             if field in record_fields:
-                value = _process_update_value(record_fields[field])
+                value = prepare_db_value(record_fields[field])
                 case_clauses[field].append((key_value, value))
     
     return case_clauses
@@ -163,7 +153,7 @@ def _build_case_clauses_complex(update_list, all_fields):
         
         for field in all_fields:
             if field in record_fields:
-                value = _process_update_value(record_fields[field])
+                value = prepare_db_value(record_fields[field])
                 case_clauses[field].append((where_clause, where_params, value))
     
     return case_clauses, all_conditions
