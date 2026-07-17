@@ -1,22 +1,23 @@
+from pathlib import Path
 from setuptools import setup, find_packages
 
-# 读取README文件
+# 读取README文件    
 try:
     with open('README.md', 'r', encoding='utf-8') as f:
         long_description = f.read()
 except FileNotFoundError:
     long_description = 'A lazy MySQL client for Python'
 
+__version__ = (Path(__file__).parent / "lazy_mysql" / ".version").read_text().strip()
+
+with open('requirements.txt', 'r', encoding='utf-8') as f:
+    requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+
 setup(
     name='lazy_mysql',
-    version='0.6.7',
+    version=__version__,
     packages=find_packages(),
-    install_requires=[
-        'mysql-connector-python>=9.4.0',
-        'pandas>=2.3.1',
-        'pydantic>=2.0.0',
-        'sqlparse>=0.5.0',
-    ],
+    install_requires=requirements,
     author='tinycen',
     author_email='sky_ruocen@qq.com',
     description='A lazy MySQL client for Python that simplifies database operations with intuitive methods for CRUD operations, automatic connection management, and result formatting. Features include easy-to-use SELECT, INSERT, UPDATE, DELETE operations with pandas DataFrame support, where clause builders, and table export capabilities.',

@@ -1,24 +1,18 @@
-from .models import MySQLConfig, FetchConfig, DEFAULT_MYSQL_CONFIG
+from pathlib import Path
 from .executor import SQLExecutor
+from .models import MySQLConfig, FetchConfig, DEFAULT_MYSQL_CONFIG
 from .utils import insert, upsert, select, exists, update, batch_update, delete, merge_update_lists
 from .tools import NDayInterval, add_limit, load_sql, resolve_sql, build_where, build_sql_with_where
 
-try:
-    from importlib.metadata import version as _get_version
-    __version__ = _get_version("lazy_mysql")
-except Exception:
-    __version__ = "unknown"
-
+__version__ = (Path(__file__).parent / ".version").read_text().strip()
 
 __author__ = "tinycen"
 __email__ = "sky_ruocen@qq.com"
 
 
 # 提供便捷的导入
-__all__ = ['MySQLConfig', 
-           'DEFAULT_MYSQL_CONFIG',
-           'SQLExecutor',
-           'FetchConfig', 'NDayInterval',
+__all__ = ['__version__','MySQLConfig', 'DEFAULT_MYSQL_CONFIG',
+           'SQLExecutor', 'FetchConfig', 'NDayInterval',
            'insert', 'upsert', 'select', 'exists',
            'update', 'batch_update', 'delete', 'merge_update_lists',
            'add_limit', 'load_sql', 'resolve_sql', 'build_where', 'build_sql_with_where']
