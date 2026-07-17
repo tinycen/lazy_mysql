@@ -15,7 +15,7 @@ with open('requirements.txt', 'r', encoding='utf-8') as f:
 
 setup(
     name='lazy_mysql',
-    version=__version__,
+    version=f'v{__version__}',
     packages=find_packages(),
     install_requires=requirements,
     author='tinycen',
