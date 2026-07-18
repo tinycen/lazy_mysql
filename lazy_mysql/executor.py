@@ -5,16 +5,9 @@ from mysql.connector.abstracts import MySQLConnectionAbstract, MySQLCursorAbstra
 from mysql.connector.pooling import PooledMySQLConnection
 from .models import FetchConfig, MySQLConfig
 from .utils.connect import connection
+from .utils.connection_retry import should_retry_connection_error
 from .tools.log_utils import format_sql_for_log, truncate_long_in_lists, truncate_params_for_log
 from .tools.sql_utils import resolve_sql
-
-# 定义需要重试的错误信息常量
-_RETRYABLE_ERRORS = [
-    "Lost connection to MySQL server",
-    "The Read Operation timed out",
-    "TimeoutError",
-    "connection timeout"
-]
 
 class SQLExecutor :
     """SQL执行器类，提供统一的数据库操作接口"""
@@ -76,21 +69,13 @@ class SQLExecutor :
         :param needs_rollback: 是否需要回滚事务
         :return: 如果重试成功返回True，否则抛出异常
         """
-        if self._should_retry(error, retry_count) and self._try_reconnect(operation_name):
+        if should_retry_connection_error(error, retry_count) and self._try_reconnect(operation_name):
             return True
 
         self._log_failed_statement(sql, params)
         self._rollback_if_needed(needs_rollback)
         self.close()
         raise Exception(f"SQL {operation_name} failed: {str(error)}")
-
-    @staticmethod
-    def _should_retry(error, retry_count):
-        """判断异常是否尚可进行一次自动重连。"""
-        error_str_lower = str(error).lower()
-        return retry_count == 0 and any(
-            keyword.lower() in error_str_lower for keyword in _RETRYABLE_ERRORS
-        )
 
     def _try_reconnect(self, operation_name):
         """关闭旧连接并重新建立连接，返回重连是否成功。"""

@@ -5,6 +5,7 @@ import pytest
 from sqlparse.exceptions import SQLParseError
 
 from lazy_mysql.executor import SQLExecutor
+from lazy_mysql.utils.connection_retry import should_retry_connection_error
 from lazy_mysql.tools.log_utils import format_sql_for_log
 
 
@@ -18,6 +19,14 @@ def make_executor():
     executor.mycursor = Mock(statement="SELECT * FROM users WHERE id = 1")
     executor.close = Mock()
     return executor
+
+
+def test_should_retry_connection_error_only_retries_known_first_failure():
+    error = Exception("Lost connection to MySQL server")
+
+    assert should_retry_connection_error(error, retry_count=0) is True
+    assert should_retry_connection_error(error, retry_count=1) is False
+    assert should_retry_connection_error(Exception("syntax error"), retry_count=0) is False
 
 
 def test_handle_connection_error_reconnects_once(monkeypatch):
