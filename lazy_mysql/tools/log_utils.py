@@ -1,5 +1,8 @@
 import re
 
+import sqlparse
+from sqlparse.exceptions import SQLParseError
+
 # 错误日志中 IN/NOT IN 列表与 params 截断阈值
 _IN_TRUNCATION_THRESHOLD = 30     # IN 列表元素超过此数量才截断
 _MAX_IN_ITEMS_FOR_LOG = 10        # IN 列表截断后保留的元素数量
@@ -96,3 +99,11 @@ def truncate_params_for_log(params):
         'kept_count': None,
         'truncated_count': 0,
     }
+
+
+def format_sql_for_log(sql):
+    """格式化 SQL 供日志展示；格式化失败时保留原始 SQL。"""
+    try:
+        return sqlparse.format(sql, reindent=True, keyword_case='upper')
+    except SQLParseError:
+        return sql

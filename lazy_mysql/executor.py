@@ -1,13 +1,11 @@
 import json
 import logging
-import sqlparse
 from typing import Literal
 from mysql.connector.abstracts import MySQLConnectionAbstract, MySQLCursorAbstract
 from mysql.connector.pooling import PooledMySQLConnection
-from sqlparse.exceptions import SQLParseError
 from .models import FetchConfig, MySQLConfig
 from .utils.connect import connection
-from .tools.log_utils import truncate_long_in_lists, truncate_params_for_log
+from .tools.log_utils import format_sql_for_log, truncate_long_in_lists, truncate_params_for_log
 from .tools.sql_utils import resolve_sql
 
 # 定义需要重试的错误信息常量
@@ -78,80 +76,104 @@ class SQLExecutor :
         :param needs_rollback: 是否需要回滚事务
         :return: 如果重试成功返回True，否则抛出异常
         """
-        error_str = str(error)
-        error_str_lower = error_str.lower()
-        
-        # 检查是否是可重试的错误（连接丢失或超时错误）
-        if retry_count == 0 and any(err_kw.lower() in error_str_lower for err_kw in _RETRYABLE_ERRORS):
-            try:
-                self.logger.warning("Connection lost or timeout during %s. Attempting to reconnect...", operation_name)
-                # 关闭现有连接
-                self.close()
-                
-                # 重新初始化连接
-                self.mydb, self.mycursor = connection(self.sql_config, self.database, dict_cursor=self.dict_cursor)
-                
-                return True  # 重试成功
-                
-            except Exception as reconnect_error:
-                self.logger.error("Reconnection failed during %s: %s", operation_name, reconnect_error)
-                # 继续执行原始的错误处理流程
-        
-        if sql:
-        # 避免在 commit 这种没有 SQL 语句的场景下打印空 SQL 日志的，保留 if 更合理。
-            sql_truncation_details = []
-            try:
-                sql_for_log = truncate_long_in_lists(sql)
-                sql_truncation_details = sql_for_log['details']
-                if sql_for_log['truncated']:
-                    self.logger.warning(
-                        "SQL 中以下 IN/NOT IN 列表已截断（仅用于日志展示）：\n%s",
-                        json.dumps(sql_for_log['details'], ensure_ascii=False, indent=2)
-                    )
-                formatted_sql = sqlparse.format(sql_for_log['sql'], reindent=True, keyword_case='upper')
-                self.logger.error("SQL:\n%s", formatted_sql)
-            except SQLParseError:
-                self.logger.error("SQL (raw):\n%s", sql)
-            if params is not None:
-                log_params = truncate_params_for_log(params)
-                if log_params['truncated']:
-                    self.logger.warning(
-                        "Params 列表已截断（仅用于日志展示）：\n%s",
-                        json.dumps(
-                            {k: v for k, v in log_params.items() if k != 'params'},
-                            ensure_ascii=False, indent=2
-                        )
-                    )
-                self.logger.error("Params: %s", log_params['params'])
+        if self._should_retry(error, retry_count) and self._try_reconnect(operation_name):
+            return True
 
-                # 获取游标中已填充参数的完整SQL语句
-                # 仅当存在 params 时才打印，否则与上面的 SQL 完全相同，造成重复
-                full_statement = getattr(self.mycursor, 'statement', None)
-                if full_statement:
-                    try:
-                        statement_for_log = truncate_long_in_lists(full_statement)
-                        if statement_for_log['truncated']:
-                            # 如果 Full SQL 与 SQL 的截断详情相同，避免重复输出警告
-                            if statement_for_log['details'] != sql_truncation_details:
-                                self.logger.warning(
-                                    "Full SQL 中以下 IN/NOT IN 列表已截断（仅用于日志展示）：\n%s",
-                                    json.dumps(statement_for_log['details'], ensure_ascii=False, indent=2)
-                                )
-                        formatted_statement = sqlparse.format(statement_for_log['sql'], reindent=True, keyword_case='upper')
-                        self.logger.error("Full SQL (with params):\n%s", formatted_statement)
-                    except SQLParseError:
-                        self.logger.error("Full SQL (with params, raw):\n%s", full_statement)
-                
-        # 如果发生错误，回滚事务
-        if needs_rollback and self.mydb is not None:
-            try:
-                self.mydb.rollback()
-            except:
-                pass  # 连接可能已经断开，忽略回滚错误
-        
+        self._log_failed_statement(sql, params)
+        self._rollback_if_needed(needs_rollback)
         self.close()
-            
         raise Exception(f"SQL {operation_name} failed: {str(error)}")
+
+    @staticmethod
+    def _should_retry(error, retry_count):
+        """判断异常是否尚可进行一次自动重连。"""
+        error_str_lower = str(error).lower()
+        return retry_count == 0 and any(
+            keyword.lower() in error_str_lower for keyword in _RETRYABLE_ERRORS
+        )
+
+    def _try_reconnect(self, operation_name):
+        """关闭旧连接并重新建立连接，返回重连是否成功。"""
+        try:
+            self.logger.warning(
+                "Connection lost or timeout during %s. Attempting to reconnect...",
+                operation_name,
+            )
+            self.close()
+            self.mydb, self.mycursor = connection(
+                self.sql_config, self.database, dict_cursor=self.dict_cursor,
+            )
+            return True
+        except Exception as reconnect_error:
+            self.logger.error("Reconnection failed during %s: %s", operation_name, reconnect_error)
+            return False
+
+    def _log_failed_statement(self, sql, params):
+        """记录失败 SQL、参数及驱动已填充参数后的完整 SQL。"""
+        if not sql:
+            return
+
+        sql_truncation_details = self._log_sql("SQL", sql)
+        if params is None:
+            return
+
+        self._log_params(params)
+        self._log_full_statement(sql_truncation_details)
+
+    def _log_sql(self, label, sql):
+        """记录一段 SQL，并返回其 IN/NOT IN 列表截断详情。"""
+        sql_for_log = truncate_long_in_lists(sql)
+        if sql_for_log['truncated']:
+            self.logger.warning(
+                "%s 中以下 IN/NOT IN 列表已截断（仅用于日志展示）：\n%s",
+                label,
+                json.dumps(sql_for_log['details'], ensure_ascii=False, indent=2),
+            )
+        self.logger.error("%s:\n%s", label, format_sql_for_log(sql_for_log['sql']))
+        return sql_for_log['details']
+
+    def _log_params(self, params):
+        """记录参数，并在参数过长时仅记录其摘要。"""
+        log_params = truncate_params_for_log(params)
+        if log_params['truncated']:
+            self.logger.warning(
+                "Params 列表已截断（仅用于日志展示）：\n%s",
+                json.dumps(
+                    {key: value for key, value in log_params.items() if key != 'params'},
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            )
+        self.logger.error("Params: %s", log_params['params'])
+
+    def _log_full_statement(self, sql_truncation_details):
+        """记录游标中已代入参数的完整 SQL，避免重复截断警告。"""
+        full_statement = getattr(self.mycursor, 'statement', None)
+        if not full_statement:
+            return
+
+        statement_for_log = truncate_long_in_lists(full_statement)
+        if (
+            statement_for_log['truncated']
+            and statement_for_log['details'] != sql_truncation_details
+        ):
+            self.logger.warning(
+                "Full SQL 中以下 IN/NOT IN 列表已截断（仅用于日志展示）：\n%s",
+                json.dumps(statement_for_log['details'], ensure_ascii=False, indent=2),
+            )
+        self.logger.error(
+            "Full SQL (with params):\n%s",
+            format_sql_for_log(statement_for_log['sql']),
+        )
+
+    def _rollback_if_needed(self, needs_rollback):
+        """在需要且可能时回滚；连接已断开时忽略回滚异常。"""
+        if not needs_rollback or self.mydb is None:
+            return
+        try:
+            self.mydb.rollback()
+        except Exception:
+            pass
 
     # 提交数据库
     def commit( self , retry_count = 0 ) :
