@@ -247,7 +247,7 @@ def safe_update(table, fields, conditions):
 # 打印生成的SQL（开发环境）
 def debug_update(table, fields, conditions):
     """调试模式：显示生成的SQL"""
-    from lazy_mysql.utils.update import update as update_func
+    from lazy_mysql.crud.update import update as update_func
     from lazy_mysql.tools.where_clause import build_where
     
     # 构建SQL
@@ -383,7 +383,7 @@ merge_update_lists(*update_lists, on_conflict='error')
 #### 基础合并
 
 ```python
-from lazy_mysql.utils.update import merge_update_lists
+from lazy_mysql.crud.update import merge_update_lists
 
 list1 = [{'fields': {'name': '张三'}, 'conditions': {'id': 1}}]
 list2 = [{'fields': {'age': 25}, 'conditions': {'id': 1}}]
@@ -395,7 +395,7 @@ merged = merge_update_lists(list1, list2)
 #### 配合 batch_update 使用
 
 ```python
-from lazy_mysql.utils.update import merge_update_lists
+from lazy_mysql.crud.update import merge_update_lists
 
 # 不同来源的更新数据
 updates_from_api = [

@@ -1,6 +1,6 @@
 import pandas as pd
-from ..value_converter import prepare_db_value
-from ...tools.where_clause import build_where
+from ..utils.value_converter import prepare_db_value
+from ..tools.where_clause import build_where
 
 
 def batch_update(executor, table_name, update_list, commit=False, self_close=False):

@@ -1,5 +1,5 @@
-from ..value_converter import prepare_db_row
-from ...tools.where_clause import build_where
+from ..utils.value_converter import prepare_db_row
+from ..tools.where_clause import build_where
 
 def update(executor, table_name, fields, conditions, commit=False, self_close=False):
     """

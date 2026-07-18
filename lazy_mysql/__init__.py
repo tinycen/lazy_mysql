@@ -1,7 +1,7 @@
 from pathlib import Path
 from .executor import SQLExecutor
 from .models import MySQLConfig, FetchConfig, DEFAULT_MYSQL_CONFIG
-from .utils import insert, upsert, select, exists, update, batch_update, delete, merge_update_lists
+from .crud import insert, upsert, select, exists, update, batch_update, delete, merge_update_lists
 from .tools import NDayInterval, add_limit, load_sql, resolve_sql, build_where, build_sql_with_where
 
 __version__ = (Path(__file__).parent / ".version").read_text().strip()

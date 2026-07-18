@@ -2,7 +2,7 @@ import os
 import csv
 import tempfile
 
-from .value_converter import prepare_db_row, prepare_db_value
+from ..utils.value_converter import prepare_db_row, prepare_db_value
 
 def insert(executor, table_name, fields, skip_duplicate=False, commit=False, self_close=False, temp_dir=None):
     """

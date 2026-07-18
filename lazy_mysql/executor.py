@@ -8,6 +8,11 @@ from .utils.connect import connection
 from .utils.connection_retry import should_retry_connection_error
 from .tools.log_utils import format_sql_for_log, truncate_long_in_lists, truncate_params_for_log
 from .tools.sql_utils import resolve_sql
+from .crud.insert import insert as insert_func, upsert as upsert_func
+from .crud.update import update as update_func
+from .crud.batch_update import batch_update as batch_update_func
+from .crud.delete import delete as delete_func
+from .crud.select import select as select_func, exists as exists_func
 
 class SQLExecutor :
     """SQL执行器类，提供统一的数据库操作接口"""
@@ -300,7 +305,6 @@ class SQLExecutor :
         :param self_close: 是否自动关闭连接
         :return: 插入成功的记录数（int）
         """
-        from .utils.insert import insert as insert_func
         return insert_func(self, table_name, fields, skip_duplicate, commit, self_close)
 
 
@@ -320,7 +324,6 @@ class SQLExecutor :
         :param self_close: 是否自动关闭连接
         :return: 插入或更新成功的记录数（int）
         """
-        from .utils.insert import upsert as upsert_func
         return upsert_func(self, table_name, fields, fields_update, commit, self_close)
 
 
@@ -336,7 +339,6 @@ class SQLExecutor :
         :param self_close: 是否自动关闭连接
         :return: 受影响的行数（int）
         """
-        from .utils.update import update as update_func
         return update_func(self, table_name, fields, conditions, commit, self_close)
 
     # 批量更新数据
@@ -373,7 +375,6 @@ class SQLExecutor :
             ... ]
             >>> executor.batch_update('users', update_list, commit=True)
         """
-        from .utils.update import batch_update as batch_update_func
         batch_update_func(self, table_name, update_list, commit, self_close)
 
     # 删除数据
@@ -387,7 +388,6 @@ class SQLExecutor :
         :param self_close: 是否自动关闭连接
         :return: 受影响的行数（int）
         """
-        from .utils.delete import delete as delete_func
         return delete_func(self, table_name, conditions, commit, self_close)
 
 
@@ -452,7 +452,6 @@ class SQLExecutor :
         if fields is None:
             raise ValueError("fields 参数不能为空")
 
-        from .utils.select import select as select_func
         return select_func(self, table_names, fields, conditions, order_by, limit, distinct, join_conditions, self_close, fetch_config)
 
 
@@ -487,7 +486,6 @@ class SQLExecutor :
             >>> executor.exists('orders', {'created_at': ('>=', NDayInterval(7))})
             True
         """
-        from .utils.select import exists as exists_func
         return exists_func(self, table_names, conditions, join_conditions, self_close)
 
 

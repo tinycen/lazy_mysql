@@ -3,8 +3,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from lazy_mysql.utils.update.batch_update import batch_update
-from lazy_mysql.utils.update.update import update
+from lazy_mysql import batch_update, update
 
 
 class DummyCursor:

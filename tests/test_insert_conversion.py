@@ -4,7 +4,8 @@ from datetime import datetime
 
 import pandas as pd
 
-from lazy_mysql.utils.insert import insert, upsert, _executemany_optimized, _bulk_insert_load_data
+from lazy_mysql import insert, upsert
+from lazy_mysql.crud.insert import _executemany_optimized, _bulk_insert_load_data
 from lazy_mysql.utils.value_converter import prepare_db_value
 
 

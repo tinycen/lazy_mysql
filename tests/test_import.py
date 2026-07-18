@@ -66,6 +66,18 @@ def test_public_functions_are_callable():
         assert callable(obj), f"lazy_mysql.{name} 应该是可调用的"
 
 
+def test_top_level_crud_exports_match_crud_package():
+    """顶层 CRUD API 必须指向 crud 包中的同一实现。"""
+    from lazy_mysql import crud
+
+    crud_names = [
+        'insert', 'upsert', 'select', 'exists',
+        'update', 'batch_update', 'delete', 'merge_update_lists',
+    ]
+    for name in crud_names:
+        assert getattr(lazy_mysql, name) is getattr(crud, name)
+
+
 def test_all_exports_are_unique():
     """确保 __all__ 中没有重复的符号"""
     assert len(lazy_mysql.__all__) == len(set(lazy_mysql.__all__)), (

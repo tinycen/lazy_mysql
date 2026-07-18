@@ -60,7 +60,8 @@ def test_handle_connection_error_logs_rolls_back_closes_and_raises():
     executor.mydb.rollback.assert_called_once_with()
     executor.close.assert_called_once_with()
     assert any(
-        call.args[0] == "SQL:\n%s" for call in executor.logger.error.call_args_list
+        call.args[0] == "%s:\n%s" and call.args[1] == "SQL"
+        for call in executor.logger.error.call_args_list
     )
     assert any(
         call.args[0] == "Params: %s" for call in executor.logger.error.call_args_list
@@ -68,6 +69,19 @@ def test_handle_connection_error_logs_rolls_back_closes_and_raises():
     assert any(
         call.args[0] == "Full SQL (with params):\n%s"
         for call in executor.logger.error.call_args_list
+    )
+
+
+def test_batch_update_delegates_to_crud_implementation(monkeypatch):
+    executor = object.__new__(SQLExecutor)
+    batch_update_func = Mock()
+    monkeypatch.setattr("lazy_mysql.executor.batch_update_func", batch_update_func)
+
+    update_list = [{'fields': {'status': 'done'}, 'conditions': {'id': 1}}]
+    executor.batch_update('orders', update_list, commit=True, self_close=True)
+
+    batch_update_func.assert_called_once_with(
+        executor, 'orders', update_list, True, True,
     )
 
 

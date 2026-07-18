@@ -2,8 +2,8 @@
 Tests for batch_update functionality
 """
 import pytest
-from lazy_mysql.utils.update.batch_update import (
-    batch_update,
+from lazy_mysql import batch_update
+from lazy_mysql.crud.batch_update import (
     _build_complex_update_sql,
     _build_simple_update_sql,
     _check_simple_case
