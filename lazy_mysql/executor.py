@@ -124,22 +124,23 @@ class SQLExecutor :
                     )
                 self.logger.error("Params: %s", log_params['params'])
 
-            # 获取游标中已填充参数的完整SQL语句
-            full_statement = getattr(self.mycursor, 'statement', None)
-            if full_statement:
-                try:
-                    statement_for_log = truncate_long_in_lists(full_statement)
-                    if statement_for_log['truncated']:
-                        # 如果 Full SQL 与 SQL 的截断详情相同，避免重复输出警告
-                        if statement_for_log['details'] != sql_truncation_details:
-                            self.logger.warning(
-                                "Full SQL 中以下 IN/NOT IN 列表已截断（仅用于日志展示）：\n%s",
-                                json.dumps(statement_for_log['details'], ensure_ascii=False, indent=2)
-                            )
-                    formatted_statement = sqlparse.format(statement_for_log['sql'], reindent=True, keyword_case='upper')
-                    self.logger.error("Full SQL (with params):\n%s", formatted_statement)
-                except SQLParseError:
-                    self.logger.error("Full SQL (with params, raw):\n%s", full_statement)
+                # 获取游标中已填充参数的完整SQL语句
+                # 仅当存在 params 时才打印，否则与上面的 SQL 完全相同，造成重复
+                full_statement = getattr(self.mycursor, 'statement', None)
+                if full_statement:
+                    try:
+                        statement_for_log = truncate_long_in_lists(full_statement)
+                        if statement_for_log['truncated']:
+                            # 如果 Full SQL 与 SQL 的截断详情相同，避免重复输出警告
+                            if statement_for_log['details'] != sql_truncation_details:
+                                self.logger.warning(
+                                    "Full SQL 中以下 IN/NOT IN 列表已截断（仅用于日志展示）：\n%s",
+                                    json.dumps(statement_for_log['details'], ensure_ascii=False, indent=2)
+                                )
+                        formatted_statement = sqlparse.format(statement_for_log['sql'], reindent=True, keyword_case='upper')
+                        self.logger.error("Full SQL (with params):\n%s", formatted_statement)
+                    except SQLParseError:
+                        self.logger.error("Full SQL (with params, raw):\n%s", full_statement)
                 
         # 如果发生错误，回滚事务
         if needs_rollback and self.mydb is not None:
