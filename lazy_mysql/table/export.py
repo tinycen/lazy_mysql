@@ -5,7 +5,7 @@ from ..executor import SQLExecutor
 
 
 
-def table_md(executor: SQLExecutor, table_name, save_path=None, self_close=True):
+def table_md(executor: SQLExecutor, table_name:str, save_path=None, self_close=True):
     """
     将 table/view 中的字段和字段类型,字段描述,是否主键,索引导出为md格式文件
     - 自动识别视图并委托 view_md 处理
@@ -308,23 +308,32 @@ def tables_md(executor: SQLExecutor, table_names=None, save_dir=None, self_close
         raise Exception(f"Batch export failed: {str(e)}")
 
 
-def export_md(executor: SQLExecutor, table_name:str, save_path=None, self_close=True):
+def export_md(executor: SQLExecutor, table_name: str | list[str] | tuple[str, ...] | None = None, save_path=None, self_close=True):
     """
     将 table/view 中的字段和字段类型，导出为md格式文件
     :param executor: SQLExecutor 实例
-    :param table_name: 表名或表名列表，支持字符串或列表.[]/()表示导出所有表和视图
-    :param save_path: 保存路径，当导出单个表时为文件路径，导出多个表时为目录路径
+    :param table_name: 表名或表名列表，支持字符串、列表或元组；[]/() 或 None 表示导出所有表和视图
+    :param save_path: 保存路径，当导出单个表/视图时为文件路径，导出多个表/视图时为目录路径
     :param self_close: 是否自动关闭连接
-    :return: 当导出单个表时为None，导出多个表时返回 dict（含 'tables' 和 'views'）
+    :return: 当导出单个表/视图时为None，导出多个表/视图时返回 dict（含 'tables' 和 'views'）
     """
     # 判断table_name类型
     if isinstance(table_name, str):
-        # 单个表/视图导出，table_md 内部自动识别视图
+        # 单个视图导出时，若 save_path 为目录或省略，则保存到 views 子目录
+        if _is_view(executor, table_name):
+            if save_path is None or os.path.isdir(save_path):
+                views_dir = os.path.join(save_path or "", "views")
+                if not os.path.exists(views_dir):
+                    os.makedirs(views_dir)
+                save_path = os.path.join(views_dir, f"{table_name}.md")
         table_md(executor, table_name, save_path, self_close)
         return None
     elif isinstance(table_name, (list, tuple)):
         # 批量导出
         return tables_md(executor, table_name, save_path, self_close)
+    elif table_name is None:
+        # 导出所有表和视图
+        return tables_md(executor, None, save_path, self_close)
     else:
         # 默认按字符串处理
         table_md(executor, str(table_name), save_path, self_close)
