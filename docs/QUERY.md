@@ -24,7 +24,7 @@
 | 对比项 | `query()` | `fetch_format()` |
 |--------|-----------|------------------|
 | 参数风格 | 统一使用 `fetch_config`（`FetchConfig` 对象或字典）| 分散参数：`fetch_mode`、`output_format`、`show_count`、`data_label` 分别传入 |
-| 默认输出格式 | `output_format="df_dict"`（字典列表）| `output_format=""`（原始元组） |
+| 默认输出格式 | `output_format="df_dict"`（字典列表）⚠️ `dict_cursor=True` 时不传 `fetch_config` 会因默认 `df_dict` 触发 `ValueError`，需显式传 `output_format=""` | `output_format=""`（原始元组） |
 | 适用对象 | 面向用户，推荐使用 | 内部方法，供 `query()`/`select()` 内部调用 |
 | 参数校验 | 自动解析 `fetch_config`，填充默认值 | 需调用方自行传入所有参数 |
 
@@ -80,7 +80,7 @@ fetch_format(
 |--------|------|------|------|
 | `sql` | str | 是 | 完整的 SQL 查询语句 |
 | `fetch_mode` | str | 是 | 获取模式：`"all"`（所有结果）、`"oneTuple"`（单条元组）、`"one"`（单个值）|
-| `output_format` | str | 否 | 输出格式，默认 `""`（原始元组），可选 `"list_1"`、`"df"`、`"df_dict"` |
+| `output_format` | str | 否 | 输出格式，默认 `""`（原始元组），可选 `"list_1"`、`"df"`、`"df_dict"`。⚠️ 当 `Executor` 以 `dict_cursor=True` 初始化时，不支持 `"list_1"`、`"df"`、`"df_dict"`，仅支持 `""`、`"dict"`（`oneTuple` 时），否则抛出 `ValueError` |
 | `show_count` | bool | 否 | 是否打印并返回结果数量，默认 `False` |
 | `data_label` | list | 否 | 列名标签，`output_format` 为 `"df"` / `"df_dict"` 时不能为空 |
 | `params` | dict/tuple/list | 否 | 参数化查询的参数 |
@@ -250,3 +250,4 @@ result = executor.query(
 1. **参数化查询**：务必使用 `%s` 占位符 + `params` 参数，防止 SQL 注入
 2. **data_label**：当 `output_format` 为 `"df"` 或 `"df_dict"` 时，`data_label` 不能为空
 3. **默认输出**：`query()` 默认 `output_format="df_dict"`，与 `select()` 默认 `""` 不同
+4. **dict_cursor 限制**：当 `Executor` 以 `dict_cursor=True` 初始化时，`output_format` 不支持 `"list_1"`、`"df"`、`"df_dict"`，仅支持 `""`（字典列表）、`"dict"`（`oneTuple` 时需 `data_label`），否则抛出 `ValueError`

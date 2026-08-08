@@ -28,6 +28,8 @@
 
 > 注意：`output_format="dict"` 仅在 `fetch_mode="oneTuple"` 时有效；在 `fetch_mode="all"` 时请使用 `"df_dict"` 获取字典列表，否则将抛出 `ValueError`。
 
+> ⚠️ **`dict_cursor=True` 时的限制**：当 `Executor` 以 `dict_cursor=True` 初始化时，`output_format` 不支持 `"list_1"`、`"df"`、`"df_dict"`，仅支持 `""`（dict_cursor 下自然返回字典列表）、`"dict"`（`fetch_mode="oneTuple"` 时）。传入受限格式将抛出 `ValueError`。
+
 ### 3. data_label - 自定义列名
 
 - 类型: `list[str]`

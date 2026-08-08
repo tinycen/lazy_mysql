@@ -9,6 +9,8 @@ def fetch_format( executor , sql , fetch_mode: Literal["all", "oneTuple", "one"]
     :param sql: SQL语句
     :param fetch_mode: 获取模式,可选值: all、oneTuple、one
     :param output_format: 输出格式 ,默认 "" , 可选值: list_1、df、df_dict（fetch_mode="all" 时有效）、dict（仅 fetch_mode="oneTuple" 时有效）
+        ⚠️ 当 executor.dict_cursor=True 时，output_format 仅支持 ""（字典列表）、"dict"（fetch_mode="oneTuple" 时）、以及配合 fetch_mode="one" 获取单个值；
+        不支持 "list_1"、"df"、"df_dict"，传入会抛出 ValueError。
     :param show_count: 是否显示结果数量
     :param data_label: 数据标签，用于DataFrame的列名或字典的键名
     :param params: 参数
@@ -34,6 +36,16 @@ def fetch_format( executor , sql , fetch_mode: Literal["all", "oneTuple", "one"]
     if output_format == "dict":
         if fetch_mode != "oneTuple":
             raise ValueError("output_format='dict' 仅在 fetch_mode='oneTuple' 时有效!")
+
+    # 验证：dict_cursor=True 时，不支持 list_1 / df / df_dict 输出格式
+    # 原因：字典游标返回的是 dict 列表而非 tuple 列表，list_1（取 row[0]）会直接报错，
+    # 而 df/df_dict 会强制用 data_label 覆盖 dict 自带的列名，造成列名与数据错配。
+    if getattr(executor, "dict_cursor", False) and output_format in ["list_1", "df", "df_dict"]:
+        raise ValueError(
+            f"当 dict_cursor=True 时，output_format 不支持 '{output_format}'。"
+            f" 请使用以下输出格式之一：''（字典列表）、'dict'（fetch_mode='oneTuple' 时）、"
+            f" 或仅用 fetch_mode='one' 获取单个值。"
+        )
 
     executor.execute( sql , params , self_close = False )
 

@@ -264,6 +264,9 @@ class SQLExecutor :
         :param sql: SQL语句（支持直接传入SQL文本或 .sql 文件路径）
         :param fetch_mode: 获取模式,可选值: all、oneTuple、one
         :param output_format: 输出格式 ,默认 "" , 可选值: list_1、df、df_dict（fetch_mode="all" 时有效）、dict（仅 fetch_mode="oneTuple" 时有效）
+            ⚠️ 当 dict_cursor=True 初始化 Executor 时，output_format 仅支持 ""（字典列表）、"dict"
+            （fetch_mode="oneTuple" 时）、以及配合 fetch_mode="one" 获取单个值；不支持 "list_1"、"df"、"df_dict"，
+            传入会抛出 ValueError。
         :param show_count: 是否显示结果数量
         :param data_label: 数据标签，用于DataFrame的列名或字典的键名
         :param params: 参数
@@ -423,6 +426,9 @@ class SQLExecutor :
                - "list_1": 返回扁平化的列表（提取每行的第一个字段）
                - "df": 返回pandas DataFrame
                - "df_dict": 返回字典列表（DataFrame转dict）
+
+               ⚠️ 当 Executor 以 dict_cursor=True 初始化时，output_format 不支持 "list_1"、"df"、"df_dict"，
+               仅支持 ""（dict_cursor 下为字典列表）、"dict"（fetch_mode="oneTuple" 时），否则抛出 ValueError。
 
             3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
                如果为None，系统会根据fields自动生成
@@ -588,6 +594,9 @@ class SQLExecutor :
         :param sql: SQL语句
         :param params: 参数
         :param fetch_config: 获取配置，用于控制查询结果的返回格式和行为。
+            注意：fetch_config 为 None 时，默认 output_format="df_dict"。若当前 Executor 以
+            dict_cursor=True 初始化，则必须显式传入 fetch_config={'output_format': ''}（或 'dict'），
+            否则默认 df_dict 会触发 ValueError。
             可以是 FetchConfig 模型实例或字典（兼容旧方式）。
 
             fetch_config包含以下可选配置项：
@@ -603,6 +612,9 @@ class SQLExecutor :
                - "df": 返回pandas DataFrame（仅all）
                - "df_dict": 返回字典列表（仅all）
                - "dict": 返回字典（仅oneTuple，需data_label）
+
+               ⚠️ 当 Executor 以 dict_cursor=True 初始化时，output_format 不支持 "list_1"、"df"、"df_dict"，
+               仅支持 ""（dict_cursor 下为字典列表）、"dict"（fetch_mode="oneTuple" 时），否则抛出 ValueError。
 
             3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
                当output_format为"df"/"df_dict"/"dict"时不能为空

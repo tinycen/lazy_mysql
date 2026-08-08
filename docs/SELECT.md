@@ -424,6 +424,18 @@ result = executor.select(
 - **`dict_cursor=False`** (默认): 返回元组列表 `[(1, 'Alice'), (2, 'Bob')]`
 - **`dict_cursor=True`**: 返回字典列表 `[{'id': 1, 'name': 'Alice'}, {'id': 2, 'name': 'Bob'}]`
 
+> ⚠️ **`dict_cursor=True` 时的输出格式限制**
+>
+> 当 `Executor` 以 `dict_cursor=True` 初始化时，`output_format` **不支持** `"list_1"`、`"df"`、`"df_dict"`。
+> 原因：字典游标返回的是 `dict` 列表而非 `tuple` 列表，`"list_1"`（`row[0]`）会触发
+> `TypeError: 'dict' object is not subscriptable using integer keys`；而 `"df"`/`"df_dict"` 会强制用
+> `data_label` 覆盖 `dict` 自带的列名，造成列名与数据错配。
+>
+> `dict_cursor=True` 时仅支持以下用法，传入受限格式将抛出 `ValueError`：
+> - `output_format=""`：返回字典列表（dict_cursor 的自然返回）
+> - `fetch_mode="oneTuple"` + `output_format="dict"`：配合 `data_label` 返回单行字典
+> - `fetch_mode="one"`：获取单个值
+
 ```python
 # 初始化时指定游标类型为字典格式
 executor = SQLExecutor(config, dict_cursor=True)
@@ -486,13 +498,14 @@ dict_data = executor.select(
 )
 # 返回: [{'id': 1, 'name': 'Alice', 'email': 'alice@example.com'}, ...]
 
-# 当 dict_cursor=True 时，output_format 可以省略
+# 当 dict_cursor=True 时，output_format 可以省略（自然返回字典列表）
 executor_dict = SQLExecutor(config, dict_cursor=True)
 users = executor_dict.select('users', ['id', 'name', 'email'])
 # 返回: [{'id': 1, 'name': 'Alice', 'email': 'alice@example.com'}, ...]
 # 此时 无需显式指定 output_format 参数
+# ⚠️ 注意：dict_cursor=True 时不可用 'df' / 'df_dict' / 'list_1' 作为 output_format
 
-# Pandas DataFrame
+# Pandas DataFrame（仅在 dict_cursor=False 时可用）
 df_data = executor.select(
     'users',
     ['id', 'name', 'age'],
@@ -500,7 +513,7 @@ df_data = executor.select(
 )
 # 返回: pandas.DataFrame对象
 
-# 扁平化列表（提取第一列）
+# 扁平化列表（提取第一列，仅在 dict_cursor=False 时可用）
 id_list = executor.select(
     'users',
     ['id'],
