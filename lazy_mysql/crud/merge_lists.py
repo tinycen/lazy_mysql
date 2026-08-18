@@ -1,4 +1,5 @@
 import copy
+from typing import Literal
 
 
 def _conditions_to_key(conditions):
@@ -18,7 +19,7 @@ def _conditions_to_key(conditions):
     return tuple(sorted((k, make_hashable(v)) for k, v in conditions.items()))
 
 
-def merge_update_lists(*update_lists, on_conflict='error'):
+def merge_update_lists(*update_lists, on_conflict: Literal['error', 'skip', 'override'] = 'error'):
     """
     合并多个update_list，根据conditions合并fields
 
