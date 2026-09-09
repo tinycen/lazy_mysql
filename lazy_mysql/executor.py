@@ -205,7 +205,9 @@ class SQLExecutor :
 
         :param sql: SQL语句（支持直接传入SQL文本或 .sql 文件路径），支持 %s 和 %(name)s 占位符
         :param retry_count: 内部参数，用于记录重试次数，避免无限循环
-        
+        :return: 受影响的行数（int）。在关闭连接前读取，因此 self_close=True 时仍可正确返回；
+            SELECT 等未产生影响行的语句可能返回 -1
+
         """
         try:
             sql = resolve_sql(sql)
@@ -249,9 +251,15 @@ class SQLExecutor :
             if self._handle_connection_error(e, "execute", retry_count, sql=sql, params=params, needs_rollback=commit):
                 return self.execute(sql, params, commit, self_close, retry_count=1)
 
+        # 必须在 close() 之前读取 rowcount：
+        # 1. self.close() 会将 mycursor 置为 None，之后再访问 rowcount 会抛 AttributeError
+        # 2. mysql-connector 纯 Python 游标的 close() 会调用 _reset_result()，将 _rowcount 重置为 -1
+        rowcount = self.mycursor.rowcount if self.mycursor is not None else -1
+
         # 关闭连接
         if self_close:
             self.close()
+        return rowcount
 
 
     # 定义解析结果程序(格式化返回结果)

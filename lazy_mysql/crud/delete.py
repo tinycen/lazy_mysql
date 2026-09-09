@@ -20,6 +20,5 @@ def delete(executor, table_name, conditions, commit=False, self_close=False):
     sql, params = build_sql_with_where(f"DELETE FROM {table_name}", conditions)
     sql += ";"
 
-    # 执行SQL
-    executor.execute(sql, params, commit, self_close)
-    return executor.mycursor.rowcount
+    # 执行SQL并返回受影响行数（execute 会在关闭连接前读取 rowcount，避免 self_close 后 mycursor 为 None 报错）
+    return executor.execute(sql, params, commit, self_close)

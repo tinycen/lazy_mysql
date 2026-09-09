@@ -40,6 +40,5 @@ def update(executor, table_name, fields, conditions, commit=False, self_close=Fa
     # 构造SQL语句
     sql = f'''UPDATE {table_name} SET {set_clause} WHERE {where_clause};'''
 
-    # 执行SQL
-    executor.execute(sql, params, commit, self_close)
-    return executor.mycursor.rowcount
+    # 执行SQL并返回受影响行数（execute 会在关闭连接前读取 rowcount，避免 self_close 后 mycursor 为 None 报错）
+    return executor.execute(sql, params, commit, self_close)
