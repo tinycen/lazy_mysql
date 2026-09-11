@@ -240,7 +240,6 @@ def _bulk_insert_load_data(executor, table_name, fields, skip_duplicate=False,
         if self_close:
             executor.close()
     
-    print(f"[LOAD DATA] All completed! Total {inserted_count} records inserted")
     return inserted_count
 
 
@@ -283,5 +282,4 @@ def _executemany_optimized(executor, table_name, fields, skip_duplicate=False,
         if self_close:
             executor.close()
     
-    print(f"[executemany] All completed! Total {inserted_count} records inserted")
     return inserted_count
