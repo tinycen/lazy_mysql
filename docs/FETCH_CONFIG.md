@@ -2,6 +2,23 @@
 
 `FetchConfig` 用于控制查询结果的返回格式和行为，支持 `FetchConfig` 模型实例或字典（兼容旧方式）。
 
+# 返回类型矩阵（事实源）
+
+普通游标（dict_cursor=False）：
+
+| fetch_mode | output_format | show_count | 返回类型 |
+|---|---|---|---|
+| `"all"` | `""` | False | `list[tuple]` |
+| `"all"` | `"list_1"` | False | `list[Any]` |
+| `"all"` | `"df"` | False | `pandas.DataFrame` |
+| `"all"` | `"df_dict"` | False | `list[dict]` |
+| `"all"` | 任意 | True | `tuple[数据, int]` |
+| `"oneTuple"` | `""` | False | `tuple | None` |
+| `"oneTuple"` | `"dict"` | False | `dict | None` |
+| `"one"` | （忽略） | False | `Any | None` |
+
+dict_cursor=True 时：`"all"+""` → `list[dict]`；`"oneTuple"+""` → `dict | None`；其余受限格式抛 ValueError。
+
 ## 配置项说明
 
 ### 1. fetch_mode - 获取模式

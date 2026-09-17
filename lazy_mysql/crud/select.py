@@ -1,5 +1,5 @@
 from ..tools.where_clause import build_sql_with_where
-from ..models.fetch_config import FetchConfig
+from ..models.fetch_config import FetchConfig, FetchConfigLike, QueryResult
 from ..tools.result_formatter import fetch_format
 
 
@@ -52,7 +52,7 @@ def _build_query_sql(select_expr, table_names, conditions=None, join_conditions=
     return sql, params
 
 def select(executor, table_names:str|list[str], fields:list[str]|None=None, conditions:dict|None=None, order_by:str|None=None, limit:int|None=None,
-           distinct:bool=False, join_conditions:dict|None=None, self_close:bool=False, fetch_config:FetchConfig|dict|None=None):
+           distinct:bool=False, join_conditions:dict|None=None, self_close:bool=False, fetch_config:FetchConfigLike|dict|None=None) -> QueryResult:
     """
     通用的SQL查询执行器方法，支持JOIN操作
     :param executor: SQLExecutor 实例

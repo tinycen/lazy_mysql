@@ -1,9 +1,14 @@
 import json
 import logging
-from typing import Literal
+from typing import Any, Literal, TYPE_CHECKING, overload
 from mysql.connector.abstracts import MySQLConnectionAbstract, MySQLCursorAbstract
 from mysql.connector.pooling import PooledMySQLConnection
-from .models import FetchConfig, MySQLConfig, OutputFormat
+from .models import (FetchConfig, FetchConfigLike, MySQLConfig, OutputFormat, QueryResult,
+                     FetchAllDf, FetchAllDfDict, FetchAllList1, FetchAllTuples,
+                     FetchOne, FetchOneDict, FetchOneTuple)
+
+if TYPE_CHECKING:
+    import pandas as pd
 from .utils import connection, should_retry_connection_error
 from .tools.log_utils import format_sql_for_log, truncate_long_in_lists, truncate_params_for_log
 from .tools.sql_utils import resolve_sql
@@ -266,7 +271,7 @@ class SQLExecutor :
     def fetch_format( self , sql , fetch_mode: Literal["all", "oneTuple", "one"] ,
                       output_format: OutputFormat = "" ,
                       show_count = False , data_label = None ,
-                      params = None , self_close = False ) :
+                      params = None , self_close = False ) -> QueryResult :
         """
         定义解析结果程序(格式化返回结果)
         :param sql: SQL语句（支持直接传入SQL文本或 .sql 文件路径）
@@ -404,9 +409,57 @@ class SQLExecutor :
 
 
     # 选择数据
+    # @overload 依据 FetchConfig 字面量子类（FetchAllDf 等）精确收窄返回类型；
+    # 子类 overload 中 fetch_config 为关键字必传（避免"省略参数"时多个签名歧义重叠），
+    # 传 dict / 基类 FetchConfig 实例 / 按位置传参时走兜底签名，返回 QueryResult 联合类型。
+    @overload
+    def select( self , table_names: str | list[str] , fields: list[str] | None = ... , conditions: dict | None = ... ,
+                order_by: str | None = ... , limit: int | None = ... , distinct: bool = ... ,
+                join_conditions: dict | None = ... , self_close: bool = ... , * ,
+                fetch_config: None = None ) -> list[tuple] : ...
+    @overload
+    def select( self , table_names: str | list[str] , fields: list[str] | None = ... , conditions: dict | None = ... ,
+                order_by: str | None = ... , limit: int | None = ... , distinct: bool = ... ,
+                join_conditions: dict | None = ... , self_close: bool = ... , * ,
+                fetch_config: FetchAllTuples ) -> list[tuple] : ...
+    @overload
+    def select( self , table_names: str | list[str] , fields: list[str] | None = ... , conditions: dict | None = ... ,
+                order_by: str | None = ... , limit: int | None = ... , distinct: bool = ... ,
+                join_conditions: dict | None = ... , self_close: bool = ... , * ,
+                fetch_config: FetchAllList1 ) -> list[Any] : ...
+    @overload
+    def select( self , table_names: str | list[str] , fields: list[str] | None = ... , conditions: dict | None = ... ,
+                order_by: str | None = ... , limit: int | None = ... , distinct: bool = ... ,
+                join_conditions: dict | None = ... , self_close: bool = ... , * ,
+                fetch_config: FetchAllDf ) -> "pd.DataFrame" : ...
+    @overload
+    def select( self , table_names: str | list[str] , fields: list[str] | None = ... , conditions: dict | None = ... ,
+                order_by: str | None = ... , limit: int | None = ... , distinct: bool = ... ,
+                join_conditions: dict | None = ... , self_close: bool = ... , * ,
+                fetch_config: FetchAllDfDict ) -> list[dict] : ...
+    @overload
+    def select( self , table_names: str | list[str] , fields: list[str] | None = ... , conditions: dict | None = ... ,
+                order_by: str | None = ... , limit: int | None = ... , distinct: bool = ... ,
+                join_conditions: dict | None = ... , self_close: bool = ... , * ,
+                fetch_config: FetchOneTuple ) -> tuple | None : ...
+    @overload
+    def select( self , table_names: str | list[str] , fields: list[str] | None = ... , conditions: dict | None = ... ,
+                order_by: str | None = ... , limit: int | None = ... , distinct: bool = ... ,
+                join_conditions: dict | None = ... , self_close: bool = ... , * ,
+                fetch_config: FetchOneDict ) -> dict | None : ...
+    @overload
+    def select( self , table_names: str | list[str] , fields: list[str] | None = ... , conditions: dict | None = ... ,
+                order_by: str | None = ... , limit: int | None = ... , distinct: bool = ... ,
+                join_conditions: dict | None = ... , self_close: bool = ... , * ,
+                fetch_config: FetchOne ) -> Any : ...
+    @overload
+    def select( self , table_names: str | list[str] , fields: list[str] | None = ... , conditions: dict | None = ... ,
+                order_by: str | None = ... , limit: int | None = ... , distinct: bool = ... ,
+                join_conditions: dict | None = ... , self_close: bool = ... ,
+                fetch_config: FetchConfigLike | dict | None = None ) -> QueryResult : ...
     def select( self , table_names:str|list[str] , fields:list[str]|None = None , conditions:dict|None = None , order_by:str|None = None , limit:int|None = None,
                 distinct:bool = False , join_conditions:dict|None = None ,
-                self_close:bool = False , fetch_config: FetchConfig | dict | None = None ) :
+                self_close:bool = False , fetch_config: FetchConfigLike | dict | None = None ) -> QueryResult :
         """
         通用的SQL查询执行器方法，支持JOIN操作
         :param table_names: 表名，可以是字符串或列表
@@ -506,7 +559,7 @@ class SQLExecutor :
 
 
     def fetch_and_response( self,table_names , fields = None , conditions = None,
-        distinct:bool=False, join_conditions=None, fetch_config: FetchConfig | dict | None = None,
+        distinct:bool=False, join_conditions=None, fetch_config: FetchConfigLike | dict | None = None,
         order_by=None, limit:int|None=None, format_func=None , self_close:bool=True ) :
         """
         通用的产品数据获取与格式化方法
@@ -597,7 +650,29 @@ class SQLExecutor :
         return { "success" : success , "result" : result , "message" : message }
 
     # 支持复杂查询的执行方法（手写SQL查询）
-    def query(self, sql, params=None, fetch_config: FetchConfig | dict | None = None, self_close=False):
+    # @overload 依据 FetchConfig 字面量子类精确收窄返回类型；
+    # 注意 query() 的 fetch_config=None 默认 output_format="df_dict" → list[dict]
+    # 子类 overload 中 fetch_config 为关键字必传（避免"省略参数"时多个签名歧义重叠），
+    # 传 dict / 基类 FetchConfig 实例 / 按位置传参时走兜底签名，返回 QueryResult 联合类型。
+    @overload
+    def query( self , sql , params = ... , * , fetch_config: None = None , self_close: bool = ... ) -> list[dict] : ...
+    @overload
+    def query( self , sql , params = ... , * , fetch_config: FetchAllTuples , self_close: bool = ... ) -> list[tuple] : ...
+    @overload
+    def query( self , sql , params = ... , * , fetch_config: FetchAllList1 , self_close: bool = ... ) -> list[Any] : ...
+    @overload
+    def query( self , sql , params = ... , * , fetch_config: FetchAllDf , self_close: bool = ... ) -> "pd.DataFrame" : ...
+    @overload
+    def query( self , sql , params = ... , * , fetch_config: FetchAllDfDict , self_close: bool = ... ) -> list[dict] : ...
+    @overload
+    def query( self , sql , params = ... , * , fetch_config: FetchOneTuple , self_close: bool = ... ) -> tuple | None : ...
+    @overload
+    def query( self , sql , params = ... , * , fetch_config: FetchOneDict , self_close: bool = ... ) -> dict | None : ...
+    @overload
+    def query( self , sql , params = ... , * , fetch_config: FetchOne , self_close: bool = ... ) -> Any : ...
+    @overload
+    def query( self , sql , params = ... , fetch_config: FetchConfigLike | dict | None = None , self_close: bool = ... ) -> QueryResult : ...
+    def query(self, sql, params=None, fetch_config: FetchConfigLike | dict | None = None, self_close=False) -> QueryResult:
         """
         执行自定义SQL查询
         :param sql: SQL语句

@@ -1,9 +1,9 @@
 import pandas as pd
 from typing import Literal
-from ..models.fetch_config import OutputFormat
+from ..models.fetch_config import OutputFormat, QueryResult
 
 def fetch_format( executor , sql , fetch_mode: Literal["all", "oneTuple", "one"] , output_format: OutputFormat = "" , show_count = False , data_label = None ,
-                  params = None , self_close = False ) :
+                  params = None , self_close = False ) -> QueryResult :
     """
     定义解析结果程序(格式化返回结果)
     :param executor: SQLExecutor 实例
@@ -64,11 +64,17 @@ def fetch_format( executor , sql , fetch_mode: Literal["all", "oneTuple", "one"]
     
     elif fetch_mode == "oneTuple" :
         myresult = executor.mycursor.fetchone()  # 接收返回结果行,返回结果为 tuple（元组）,如果没有结果,则仅返回 None
-        # 新增：支持 output_format == 'dict' 且 myresult/data_label 不为空时，转为 dict
-        if "dict" in output_format and myresult and data_label:
-            if len(myresult) != len(data_label):
-                raise ValueError(f"data_label 长度与查询结果字段数不一致！data_label : {data_label} , myresult : {myresult}")
-            myresult = dict(zip(data_label, myresult))
+        # 支持 output_format=='dict' 且 myresult/data_label 不为空时，转为 dict
+        # 注意：必须精确相等，避免 "df_dict" 因包含 "dict" 子串而误触发
+        if output_format == "dict" and myresult and data_label:
+            if isinstance(myresult, dict):
+                # dict_cursor=True 时 fetchone() 已返回字典，直接返回即可；
+                # 此前直接走 dict(zip(data_label, myresult)) 会 zip 到字典的键序列，导致键值错配
+                pass
+            else:
+                if len(myresult) != len(data_label):
+                    raise ValueError(f"data_label 长度与查询结果字段数不一致！data_label : {data_label} , myresult : {myresult}")
+                myresult = dict(zip(data_label, myresult))
     
     elif fetch_mode == "one" :
         result = executor.mycursor.fetchone()  # 接收返回结果行,返回结果为 tuple（元组）,如果没有结果,则仅返回 None

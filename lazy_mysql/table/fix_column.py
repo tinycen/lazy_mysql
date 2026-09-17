@@ -2,6 +2,7 @@ import ast
 import json
 from .validate import validate_table_name
 from ..executor import SQLExecutor
+from ..models import FetchAllTuples
 
 
 def fix_json(executor: SQLExecutor, table_name: str, index_column: str, target_column: str,
@@ -18,9 +19,10 @@ def fix_json(executor: SQLExecutor, table_name: str, index_column: str, target_c
     # 查找无效的 JSON 值（表名/列名是标识符，不能走 SQL 参数占位符，需用 Python 字符串格式化）
     sql = f""" SELECT {index_column}, {target_column}
         FROM {table_name} WHERE {target_column} IS NOT NULL AND NOT JSON_VALID({target_column}) """
-    result = executor.fetch_format(sql, fetch_mode="all")
+    # 使用类型化入口（FetchAllTuples → list[tuple]），供下方 for 解包获得精确类型
+    result = executor.query(sql, fetch_config=FetchAllTuples())
 
-    if not result:  # pyright: ignore
+    if not result:
         print("没有需要修复的 JSON 值")
         if self_close:
             executor.close()
@@ -29,7 +31,7 @@ def fix_json(executor: SQLExecutor, table_name: str, index_column: str, target_c
     fixed = 0
     failed = []
     update_list = []
-    for index, old_value in result: # pyright: ignore
+    for index, old_value in result:
         try:
             # ast.literal_eval 能解析单引号的 Python 字面量
             obj = ast.literal_eval(old_value)
