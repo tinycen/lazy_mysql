@@ -3,7 +3,7 @@ import logging
 from typing import Literal
 from mysql.connector.abstracts import MySQLConnectionAbstract, MySQLCursorAbstract
 from mysql.connector.pooling import PooledMySQLConnection
-from .models import FetchConfig, MySQLConfig
+from .models import FetchConfig, MySQLConfig, OutputFormat
 from .utils import connection, should_retry_connection_error
 from .tools.log_utils import format_sql_for_log, truncate_long_in_lists, truncate_params_for_log
 from .tools.sql_utils import resolve_sql
@@ -264,7 +264,7 @@ class SQLExecutor :
 
     # 定义解析结果程序(格式化返回结果)
     def fetch_format( self , sql , fetch_mode: Literal["all", "oneTuple", "one"] ,
-                      output_format: Literal["", "list_1", "df", "df_dict"] | Literal["dict"] = "" ,
+                      output_format: OutputFormat = "" ,
                       show_count = False , data_label = None ,
                       params = None , self_close = False ) :
         """
@@ -434,6 +434,7 @@ class SQLExecutor :
                - "list_1": 返回扁平化的列表（提取每行的第一个字段）
                - "df": 返回pandas DataFrame
                - "df_dict": 返回字典列表（DataFrame转dict）
+               - "dict": 返回字典（仅 fetch_mode="oneTuple" 时有效，需 data_label）
 
                ⚠️ 当 Executor 以 dict_cursor=True 初始化时，output_format 不支持 "list_1"、"df"、"df_dict"，
                仅支持 ""（dict_cursor 下为字典列表）、"dict"（fetch_mode="oneTuple" 时），否则抛出 ValueError。

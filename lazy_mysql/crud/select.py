@@ -81,6 +81,7 @@ def select(executor, table_names:str|list[str], fields:list[str]|None=None, cond
            - "list_1": 返回扁平化的列表（提取每行的第一个字段）
            - "df": 返回pandas DataFrame
            - "df_dict": 返回字典列表（DataFrame转dict）
+           - "dict": 返回字典（仅 fetch_mode="oneTuple" 时有效，需 data_label）
 
         3. data_label (list): 数据标签，用于DataFrame的列名或字典的键名
            如果为None，系统会根据fields自动生成

@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Literal
 
 FetchMode = Literal["all", "oneTuple", "one"]
-OutputFormat = Literal["", "list_1", "df", "df_dict"]
+OutputFormat = Literal["", "list_1", "df", "df_dict", "dict"]
 
 
 class FetchConfig(BaseModel):

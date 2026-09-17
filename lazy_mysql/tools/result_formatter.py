@@ -1,7 +1,8 @@
 import pandas as pd
 from typing import Literal
+from ..models.fetch_config import OutputFormat
 
-def fetch_format( executor , sql , fetch_mode: Literal["all", "oneTuple", "one"] , output_format: Literal["", "list_1", "df", "df_dict"] | Literal["dict"] = "" , show_count = False , data_label = None ,
+def fetch_format( executor , sql , fetch_mode: Literal["all", "oneTuple", "one"] , output_format: OutputFormat = "" , show_count = False , data_label = None ,
                   params = None , self_close = False ) :
     """
     定义解析结果程序(格式化返回结果)
