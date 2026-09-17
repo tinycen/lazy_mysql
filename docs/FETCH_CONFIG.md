@@ -14,7 +14,7 @@
 | `"all"` | `"df_dict"` | False | `list[dict]` |
 | `"all"` | 任意 | True | `tuple[数据, int]` |
 | `"oneTuple"` | `""` | False | `tuple | None` |
-| `"oneTuple"` | `"dict"` | False | `dict | None` |
+| `"oneTuple"` | `"dict"` / `"df_dict"` | False | `dict \| None` |
 | `"one"` | （忽略） | False | `Any | None` |
 
 dict_cursor=True 时：`"all"+""` → `list[dict]`；`"oneTuple"+""` → `dict | None`；其余受限格式抛 ValueError。
@@ -42,6 +42,7 @@ dict_cursor=True 时：`"all"+""` → `list[dict]`；`"oneTuple"+""` → `dict |
 | `"df"` | 返回 pandas DataFrame | `all` |
 | `"df_dict"` | 返回字典列表（DataFrame 转 dict） | `all` |
 | `"dict"` | 仅在 `fetch_mode="oneTuple"` 且 `data_label` 不为空时有效，返回字典 | `oneTuple` |
+| `"df_dict"` | 在 `fetch_mode="all"` 时返回字典列表；在 `fetch_mode="oneTuple"` 时等同于 `"dict"`，返回字典 | `all`, `oneTuple` |
 
 > 注意：`output_format="dict"` 仅在 `fetch_mode="oneTuple"` 时有效；在 `fetch_mode="all"` 时请使用 `"df_dict"` 获取字典列表，否则将抛出 `ValueError`。
 

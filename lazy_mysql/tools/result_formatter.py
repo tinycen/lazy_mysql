@@ -64,9 +64,9 @@ def fetch_format( executor , sql , fetch_mode: Literal["all", "oneTuple", "one"]
     
     elif fetch_mode == "oneTuple" :
         myresult = executor.mycursor.fetchone()  # 接收返回结果行,返回结果为 tuple（元组）,如果没有结果,则仅返回 None
-        # 支持 output_format=='dict' 且 myresult/data_label 不为空时，转为 dict
-        # 注意：必须精确相等，避免 "df_dict" 因包含 "dict" 子串而误触发
-        if output_format == "dict" and myresult and data_label:
+        # 支持 output_format 含 'dict' 且 myresult/data_label 不为空时，转为 dict
+        # 注意：兼容旧行为，'df_dict' 在单行结果下与 'dict' 等价（原代码用 "dict" in output_format 判断）
+        if output_format in ("dict", "df_dict") and myresult and data_label:
             if isinstance(myresult, dict):
                 # dict_cursor=True 时 fetchone() 已返回字典，直接返回即可；
                 # 此前直接走 dict(zip(data_label, myresult)) 会 zip 到字典的键序列，导致键值错配

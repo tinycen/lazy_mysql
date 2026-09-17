@@ -14,7 +14,7 @@ QueryData = Union[
     "pd.DataFrame",   # all + "df"
     list[dict],       # all + "df_dict" / all + ""（dict_cursor）
     tuple,            # oneTuple + ""
-    dict,             # oneTuple + "dict" / oneTuple + ""（dict_cursor）
+    dict,             # oneTuple + "dict" / "df_dict" / oneTuple + ""（dict_cursor）
     Any,              # fetch_mode="one"
     None,
 ]
@@ -90,10 +90,10 @@ class FetchOneTuple(_FetchConfigBase):
 
 
 class FetchOneDict(_FetchConfigBase):
-    """fetch_mode='oneTuple' + output_format='dict' → dict | None
+    """fetch_mode='oneTuple' + output_format='dict' 或 'df_dict' → dict | None
     （普通游标下需提供 data_label；dict_cursor 下直接返回字典游标结果）"""
     fetch_mode: Literal["oneTuple"] = "oneTuple"
-    output_format: Literal["dict"] = "dict"
+    output_format: Literal["dict", "df_dict"] = "dict"
 
 
 class FetchOne(_FetchConfigBase):
