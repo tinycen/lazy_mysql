@@ -84,6 +84,9 @@ results = executor.select(
 
 ```
 
+> ⚠️ **编写 SQL 的红线**：MySQL 驱动按**纯文本**扫描占位符，不区分代码与注释。SQL（含 `.sql` 文件）的**注释中禁止出现 `%` 和 `{}`** —— 注释里的 `%s` / `%(name)s` 会被当成真实占位符参与计数，一旦传 `params` 就会抛
+> `ProgrammingError: Not enough parameters for the SQL statement`。详见 [编写 .sql 文件的红线](docs/SQL_UTILS.md#sql-placeholder-rule)。
+
 ### 3. 使用完毕后关闭连接
 
 ```python
@@ -112,6 +115,7 @@ executor.commit_close()
 
 ### 🛠️ SQL工具函数
 - [SQL工具函数](docs/SQL_UTILS.md) - add_limit条件构建、build_where/build_sql_with_where WHERE子句构建、resolve_sql智能路径解析、load_sql文件加载
+- ⚠️ [编写 .sql 文件的红线](docs/SQL_UTILS.md#sql-placeholder-rule) - **SQL 注释中禁止出现 `%` 和 `{}`**，否则传 `params` 时必报 `Not enough parameters for the SQL statement`
 
 ### 🗂️ 表结构工具
 - [Table 表结构工具](docs/table.md) - 表/视图结构一键导出为 Markdown、TEXT 列 JSON 修复、表名校验防注入

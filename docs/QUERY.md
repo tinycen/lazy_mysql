@@ -245,9 +245,49 @@ result = executor.query(
 | JOIN | 配置化 | 在 SQL 中手写 |
 | 参数防注入 | 自动参数化 | 需手动使用 `%s` + `params` |
 
+## ⚠️ SQL 注释中禁止出现 `%` / `{}` 占位符
+
+无论 SQL 是手写字符串还是从 `.sql` 文件读入，都会**整条文本**交给 `mysql-connector-python` 做占位符扫描，而驱动是纯文本正则匹配，**不区分代码与注释**：
+
+- 元组 / 列表参数：`/(%s)/` 匹配文本中每一个 `%s`
+- 字典参数：`/%\((?P<key>[^)]+)\)(?P<type>[diouxXeEfFgGcrs%])/` 匹配每一个 `%(name)s`
+
+因此注释里写了 `%s` 或 `%(name)s`，只要调用时传了 `params`，就会被当成真实占位符参与计数：
+
+```python
+# ❌ 崩溃：注释里的 %s 被计入占位符，参数数量对不上
+executor.query(
+    """
+    -- 说明：status 由 %s 传入
+    SELECT id, name FROM users WHERE status = %s
+    """,
+    ('active',)
+)
+# ProgrammingError: Not enough parameters for the SQL statement
+
+# ✅ 正常：注释中不写 %
+executor.query(
+    """
+    -- 说明：status 由调用方通过参数传入
+    SELECT id, name FROM users WHERE status = %s
+    """,
+    ('active',)
+)
+```
+
+要点：
+
+1. 注释中**禁止**出现 `%`（尤其 `%s`、`%(name)s`）与 `{}`
+2. 非注释代码里，`%s` / `%(name)s` 只能作为真实占位符
+3. `DATE_FORMAT(col, '%Y-%m-%d %H:%i:%s')` 中秒的 `%s` 是典型陷阱，且 `%%s` 转义无效 —— 请改写为 `DATE_FORMAT(col, %s)` 并把格式串放进 `params`
+4. `{}` 直接交给 lazy_mysql 执行不会报错，但一旦 SQL 被 `str.format()` / f-string 模板化就会被替换或抛 `IndexError`，故同样禁止
+
+完整规则与实测结论见 [SQL工具函数 - 编写 .sql 文件的红线](SQL_UTILS.md#sql-placeholder-rule)。
+
 ## 注意事项
 
 1. **参数化查询**：务必使用 `%s` 占位符 + `params` 参数，防止 SQL 注入
 2. **data_label**：当 `output_format` 为 `"df"` 或 `"df_dict"` 时，`data_label` 不能为空
 3. **默认输出**：`query()` 默认 `output_format="df_dict"`，与 `select()` 默认 `""` 不同
 4. **dict_cursor 限制**：当 `Executor` 以 `dict_cursor=True` 初始化时，`output_format` 不支持 `"list_1"`、`"df"`、`"df_dict"`，仅支持 `""`（字典列表）、`"dict"`（`oneTuple` 时需 `data_label`），否则抛出 `ValueError`
+5. **注释禁止占位符**：SQL（含 `.sql` 文件）的注释中禁止出现 `%` 和 `{}`，详见上一节
