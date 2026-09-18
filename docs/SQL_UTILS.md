@@ -1,7 +1,5 @@
 # SQL工具函数
 
-<a id="sql-placeholder-rule"></a>
-
 ## ⚠️ 编写 .sql 文件的红线：注释中禁止出现 `%` / `{}` 占位符
 
 > **适用范围**：`load_sql()`、`resolve_sql()`，以及所有直接传给 `execute()` / `query()` / `fetch_format()` 的 `.sql` 文件路径。
