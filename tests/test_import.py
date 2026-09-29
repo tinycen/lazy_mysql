@@ -48,7 +48,7 @@ def test_no_extra_exports():
 
 def test_public_classes_are_types():
     """确保公开的类确实是类（而非意外变成了其他类型）"""
-    class_names = ['MySQLConfig', 'FetchConfig', 'SQLExecutor']
+    class_names = ['MySQLConfig', 'FetchConfig', 'SQLExecutor', 'SQLIssue', 'SQLPlaceholderError']
     for name in class_names:
         obj = getattr(lazy_mysql, name)
         assert inspect.isclass(obj), f"lazy_mysql.{name} 应该是一个类"
@@ -60,6 +60,8 @@ def test_public_functions_are_callable():
         'insert', 'upsert', 'select', 'exists',
         'update', 'batch_update', 'delete', 'merge_update_lists',
         'add_limit', 'load_sql', 'resolve_sql',
+        'strip_sql_comments', 'validate_placeholders',
+        'lint_sql_text', 'lint_sql_file', 'lint_sql_dir',
     ]
     for name in func_names:
         obj = getattr(lazy_mysql, name)

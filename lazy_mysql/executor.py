@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     import pandas as pd
 from .utils import connection, should_retry_connection_error
 from .tools.log_utils import format_sql_for_log, truncate_long_in_lists, truncate_params_for_log
-from .tools.sql_utils import resolve_sql
+from .tools.sql_utils import resolve_sql, validate_placeholders, SQLPlaceholderError
 from .crud import (insert as insert_func, upsert as upsert_func, 
                     update as update_func, batch_update as batch_update_func,
                     delete as delete_func,
@@ -27,6 +27,11 @@ class SQLExecutor :
     mycursor: MySQLCursorAbstract | None = None
 
     def __init__( self , sql_config=None ,database=None,dict_cursor=False) :
+        """
+        :param sql_config: 数据库配置（MySQLConfig 实例 / 字典 / None 走环境变量）
+        :param database: 数据库名，优先于 sql_config.database
+        :param dict_cursor: 是否使用字典游标
+        """
         self.sql_config = MySQLConfig.resolve(sql_config)
         self.database = database or getattr(self.sql_config, "database", None)
         if not self.database:
@@ -219,6 +224,18 @@ class SQLExecutor :
         except Exception:
             self.close()
             raise
+        # 占位符预检：发往驱动前拦截数量不匹配/缺键等必定失败的情况，给出带行列号的明确报错。
+        # 预检为纯计算，error 直接关闭并抛出，不进入 _handle_connection_error（避免误判为连接错误触发重连）。
+        issues = validate_placeholders(sql, params)
+        for issue in issues:
+            if issue.severity == "warning":
+                self.logger.warning(
+                    "[%s] SQL 第%d行第%d列: %s", issue.code, issue.line, issue.column, issue.message,
+                )
+        errors = [issue for issue in issues if issue.severity == "error"]
+        if errors:
+            self.close()
+            raise SQLPlaceholderError(errors)
         if self.mycursor is None or self.mydb is None:
             raise RuntimeError("数据库连接已关闭，无法执行SQL")
         try :

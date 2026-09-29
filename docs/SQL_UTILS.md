@@ -2,8 +2,15 @@
 
 ## ⚠️ 编写 .sql 文件的红线：注释中禁止出现 `%` / `{}` 占位符
 
+> **0.7.4 起框架已内置两层防线**：`load_sql()` / `resolve_sql()` 加载 `.sql` 文件时**自动剥离注释**
+> （`/*! ... */` 与 `/*+ ... */` 原样保留），`SQLExecutor` 执行前**始终做占位符预检**
+> （预检失败抛 `SQLPlaceholderError` 并带行列号）。两者均为框架默认行为，无需任何配置。
+> 因此注释中的占位符**不会再导致驱动报错**——但本红线仍是**编写规范**，原因：
+> ① 预检只兜底执行链路，SQL 文本若被下游自行 `str.format()` / `%` 插值仍会出问题；
+> ② 入库前可用 lint 工具（`lint_sql_file` / `lint_sql_dir`）在 CI 卡口拦截。
+>
 > **适用范围**：`load_sql()`、`resolve_sql()`，以及所有直接传给 `execute()` / `query()` / `fetch_format()` 的 `.sql` 文件路径。
-> **结论先行**：SQL 文件的**注释里禁止写 `%` 和 `{}`**。其中 `%s` / `%(name)s` 一旦出现在注释中，**只要调用时传了 `params` 就必定抛异常**。
+> **结论先行**：SQL 文件的**注释里禁止写 `%` 和 `{}`**。其中 `%s` / `%(name)s` 一旦出现在注释中，**只要调用时传了 `params` 就必定抛异常**（0.7.4 之前；0.7.4 起默认被注释剥离拦截）。
 
 ### 根因：驱动按纯文本扫描整条 SQL，不区分代码与注释
 
@@ -98,33 +105,39 @@ SELECT * FROM orders WHERE status = %s;
 SELECT * FROM orders WHERE status = %s;
 ```
 
-### 可选：入库前的自检脚本
+### 可选：入库前的自检工具（0.7.4 起内置）
 
-把注释段摘出来单独检查，不误伤正文中的真实占位符：
+框架在 `lazy_mysql.tools` 提供 lint API（结构化返回 `list[SQLIssue]`，含行号/列号/级别/命中行原文）：
+
+- 注释中出现 `%` → `W101`；出现 `{` / `}` → `W104`
+- 字符串字面量内的占位符（如 `DATE_FORMAT(x, '%Y-%m-%d %H:%i:%s')`）→ `W105`
+- 非占位符 `%`（裸 `%`、`%Y`、`%%` 等）→ `W103`
 
 ```python
-import re
-from pathlib import Path
+from lazy_mysql import lint_sql_text, lint_sql_file, lint_sql_dir
 
-COMMENT = re.compile(r"(--[^\n]*)|(/\*.*?\*/)", re.S)
-RISK = re.compile(r"(%|\{|\})")   # 注释中出现 % 或 {} 即视为违规
+issues = lint_sql_file('queries/select_users.sql')
+for i in issues:
+    print(f"[{i.code}] 第{i.line}行第{i.column}列: {i.message}")
 
-
-def check_sql_file(path: Path) -> list[tuple[int, str]]:
-    """返回 [(行号, 命中的字符), ...]，空列表表示通过。"""
-    text = path.read_text(encoding="utf-8")
-    hits = []
-    for m in COMMENT.finditer(text):
-        line = text[:m.start()].count("\n") + 1
-        for r in RISK.finditer(m.group(0)):
-            hits.append((line, r.group(0)))
-    return hits
-
-
-for f in Path("sql").rglob("*.sql"):
-    for line, ch in check_sql_file(f):
-        print(f"{f}:{line} 注释中存在占位符字符 {ch!r}")
+# 递归检查目录，仅返回有问题的文件
+for path, issues in lint_sql_dir('sql'):
+    print(path, len(issues))
 ```
+
+> 运行时兜底由 `SQLExecutor` 的占位符预检负责（占位符与参数数量不匹配 / 字典缺键等
+> 直接抛 `SQLPlaceholderError`），lint 只做不依赖 params 的静态检查，两者职责互补。
+
+### 已知限制
+
+1. **`sql_mode=NO_BACKSLASH_ESCAPES`**：注释剥离的状态机按 MySQL 默认模式处理 `\'` 转义；
+   在 `NO_BACKSLASH_ESCAPES` 模式下该假设不成立，极端构造（字符串以 `\` 结尾）可能**漏剥**后续注释。
+   失败方向是「少剥」而非「错改」，不会篡改 SQL 本体。详见 [SQL Mode 与注释剥离的兼容性说明](SQL_MODE.md)。
+2. **Prepared statement 路径不覆盖**：占位符预检对齐的是普通游标的文本替换逻辑；
+   prepared cursor（`cursor(prepared=True)`）使用服务端绑定，语义不同。lazy_mysql 固定 `use_pure=True`
+   且未启用 prepared cursor，不会走到该路径，不受影响。
+3. **mysql 客户端专有语法**：`DELIMITER` 重定义、mysqldump/存储过程 dump 脚本不适用于注释剥离与预检，
+   此类脚本不应走 `execute()` 路径。
 
 ## add_limit - SQL条件语句构建
 
@@ -260,7 +273,7 @@ result = add_limit('create_time', '2023-01-01', 'u', operator='>=')
 
 ### 函数签名
 ```python
-def load_sql(sql_path)
+def load_sql(sql_path, strip_comments=True)
 ```
 
 ### 参数说明
@@ -268,6 +281,7 @@ def load_sql(sql_path)
 | 参数名 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | sql_path | str | 必填 | SQL文件路径 |
+| strip_comments | bool | True | 0.7.4 新增。是否剥离注释：剥离后注释中的 `%s` / `%(name)s` 不会再被驱动误计为占位符；`/*! ... */` 可执行注释与 `/*+ ... */` 优化器 Hint 原样保留 |
 
 ### 返回值
 - **str**: 读取的SQL内容（去除首尾空白字符）
@@ -287,8 +301,8 @@ print(sql_content)
 1. **文件编码**: 默认使用UTF-8编码读取文件
 2. **空白处理**: 返回的SQL内容会自动去除首尾空白字符
 3. **错误处理**: 如果文件不存在或无法读取，会抛出相应的文件操作异常
-4. **⚠️ 注释禁止占位符**: 函数只做读取，不校验内容。**SQL 文件的注释中禁止出现 `%` 和 `{}`**，否则整条 SQL 交给驱动解析时会把注释里的 `%s` / `%(name)s` 当真实占位符，传 `params` 时报
-   `ProgrammingError: Not enough parameters for the SQL statement`。详见 [编写 .sql 文件的红线](#sql-placeholder-rule)
+4. **⚠️ 注释禁止占位符**: 0.7.4 起函数默认剥离注释（`strip_comments=True`），注释中的 `%s` / `%(name)s` 不会再被驱动误计为占位符；
+   但作为编写规范，**SQL 文件的注释中仍禁止出现 `%` 和 `{}`**（防止下游对文本自行做 `format` / `%` 插值时出问题）。详见 [编写 .sql 文件的红线](#sql-placeholder-rule)
 
 ### 相关函数
 - [resolve_sql](#resolve_sql---智能解析SQL参数) - 自动判断 SQL 文本或文件路径
@@ -297,6 +311,7 @@ print(sql_content)
 - [NDayInterval](CONDITIONS.md#日期区间筛选ndayinterval) - 日期区间处理
 
 ### 更新日志
+- v0.7.4: 新增 `strip_comments` 参数（默认 True），加载时剥离注释，注释中的 `%s` / `%(name)s` 不再被驱动误计为占位符
 - v0.1.1: 从 `where_clause.py` 移动到 `sql_utils.py`
 
 ## resolve_sql - 智能解析SQL参数
@@ -305,7 +320,7 @@ print(sql_content)
 
 ### 函数签名
 ```python
-def resolve_sql(sql)
+def resolve_sql(sql, strip_comments=True)
 ```
 
 ### 参数说明
@@ -313,6 +328,7 @@ def resolve_sql(sql)
 | 参数名 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | sql | str \| os.PathLike | 必填 | SQL语句字符串、`.sql` 文件路径 或 `os.PathLike` 对象 |
+| strip_comments | bool | True | 0.7.4 新增。仅对文件路径加载生效：是否剥离注释；对已是 SQL 文本的输入无效果（保持幂等契约） |
 
 ### 返回值
 - **str**: 解析后的 SQL 语句字符串
@@ -382,12 +398,13 @@ executor.execute("INSERT INTO users (name, age) VALUES (%s, %s)", ('张三', 25)
 2. **大小写不敏感**: `.sql`、`.SQL`、`.Sql` 均可识别为文件路径
 3. **空白容忍**: 路径前后的空白字符会被自动去除后再判断（`strip()`）
 4. **错误处理**: 如果文件不存在或无法读取，会抛出相应的文件操作异常
-5. **⚠️ 注释禁止占位符**: 读取到的 SQL 会整条交给驱动做占位符扫描，注释里的 `%s` / `%(name)s` 会被计入占位符数量。
-   **SQL 文件的注释中禁止出现 `%` 和 `{}`**，详见 [编写 .sql 文件的红线](#sql-placeholder-rule)
+5. **⚠️ 注释禁止占位符**: 0.7.4 起读取文件时默认剥离注释，注释里的 `%s` / `%(name)s` 不会再被计入占位符数量；
+   但作为编写规范，**SQL 文件的注释中仍禁止出现 `%` 和 `{}`**，详见 [编写 .sql 文件的红线](#sql-placeholder-rule)
 
 ### 相关函数
 - [load_sql](#load_sql---载入sql文件) - 直接从文件读取 SQL 内容
 - [add_limit](#add_limit---sql条件语句构建) - 构建 SQL 条件语句
 
 ### 更新日志
+- v0.7.4: 新增 `strip_comments` 参数（默认 True，仅对文件路径生效），加载时剥离注释
 - 新增: 支持 `str` 和 `os.PathLike` 两种路径格式，内置于 `execute()` 和 `fetch_format()` 方法
