@@ -107,7 +107,7 @@ jobs:
             NOTES_FILE="$candidate"
             break
           fi
-        fi
+        done
 
         BODY_FILE=$(mktemp)
 
