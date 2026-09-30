@@ -1,6 +1,6 @@
 # .github/workflows/release.yml
 
-name: Build, Test, Publish & Generate AI Release Notes
+name: Build, Test, Publish & Generate Release Notes
 
 on:
   push:
@@ -9,10 +9,9 @@ on:
 
 # 权限设置：
 # contents: write - 允许创建 GitHub Release
-# models: read   - 允许调用 GitHub Models AI API
+# Release Notes 直接从 docs/release_notes/<版本>.md 读取，无任何外部 AI 依赖
 permissions:
   contents: write
-  models: read
 
 jobs:
   build-test-publish-release:
@@ -46,106 +45,81 @@ jobs:
         python setup.py sdist bdist_wheel
         
     # ------------------------------------------------------------------
-    # AI 生成 Release Notes 的新步骤
+    # 准备 Release Notes：
+    #   优先读取 docs/release_notes/<版本>.md（支持 v0.7.4.md 与 0.7.4.md 两种命名）
+    #   若文件不存在，则用两个 tag 之间的 git 提交记录自动生成友好的兜底内容
     # ------------------------------------------------------------------
 
-    - name: 1. Get commit history for AI prompt
-      id: get_changelog
+    - name: 1. Prepare release notes
+      id: prepare_release_notes
       run: |
-        # 获取当前标签
+        # 当前标签（如 v0.7.4），以及去掉 v 前缀的版本号（如 0.7.4）
         CURRENT_TAG=${{ github.ref_name }}
+        VERSION=${CURRENT_TAG#v}
+        NOTES_DIR="docs/release_notes"
+
         echo "Current tag is: $CURRENT_TAG"
-        
-        # 获取上一个标签
-        # git describe --tags --abbrev=0 HEAD~1 在某些情况下可能不准确，改用下面的方法
-        PREVIOUS_TAG=$(git tag --sort=-v:refname | head -n 2 | tail -n 1)
-        
-        if [ -z "$PREVIOUS_TAG" ]; then
-          echo "No previous tag found. Using all commits."
-          # 如果是第一个 tag，则获取从项目开始到当前 tag 的所有 commit
-          COMMIT_LOG=$(git log --pretty=format:"- %s")
-        else
-          echo "Previous tag is: $PREVIOUS_TAG"
-          # 获取两个 tag 之间的 commit log
-          COMMIT_LOG=$(git log --pretty=format:"- %s" $PREVIOUS_TAG..$CURRENT_TAG)
+
+        # 按优先级查找手写的发布说明文件
+        NOTES_FILE=""
+        for candidate in "$NOTES_DIR/$CURRENT_TAG.md" "$NOTES_DIR/$VERSION.md"; do
+          if [ -f "$candidate" ]; then
+            NOTES_FILE="$candidate"
+            break
+          fi
         fi
-        
-        # 将多行 commit log 转换为单行字符串，以便在 JSON 中传递
-        # 使用 EOF 来处理多行字符串，避免转义问题
-        CHANGELOG_CONTENT=$(cat <<EOF
-        $COMMIT_LOG
-        EOF
-        )
 
-        # -----------------------------------------------------------------
-        # 新增：专门用于调试，打印变量内容到日志
-        echo "--- Content being set for the next step ---"
-        echo "$CHANGELOG_CONTENT"
-        echo "-------------------------------------------"
-        # -----------------------------------------------------------------
-      
-        # 将处理好的 changelog 设置为 step 的输出
-        echo "changelog_for_ai<<EOF" >> $GITHUB_OUTPUT
-        echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        BODY_FILE=$(mktemp)
 
-    - name: 2. Call AI to generate release notes
-      id: ai_release_notes
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CHANGELOG_DATA: ${{ steps.get_changelog.outputs.changelog_for_ai }}
-      run: |
-        # 安装 jq 用于解析 JSON 响应
-        sudo apt-get update && sudo apt-get install -y jq
-        
-        # 构建 AI Prompt
-        # 指示 AI 将 commit log 总结并分类为版本说明
-        PROMPT="Based on the following list of commit messages, please generate a user-friendly changelog for a new release. Categorize the changes into '🚀 New Features', '🐛 Bug Fixes', and '⚙️ Other Changes'. Use markdown bullet points for each item. If a category is empty, please omit it from the output. Here are the commits:"
-        
-        # 构建 JSON 请求体
-        # 使用 jq 来安全地构建 JSON，避免手动拼接字符串的各种问题
-        JSON_PAYLOAD=$(jq -n \
-          --arg prompt "$PROMPT" \
-          --arg commits "$CHANGELOG_DATA" \
-          '{
-            "model": "openai/gpt-4.1-mini",
-            "messages": [
-              {
-                "role": "system",
-                "content": $prompt
-              },
-              {
-                "role": "user",
-                "content": $commits
-              }
-            ]
-          }')
+        if [ -n "$NOTES_FILE" ]; then
+          echo "Using release notes from: $NOTES_FILE"
+          cp "$NOTES_FILE" "$BODY_FILE"
+        else
+          echo "No release notes found in $NOTES_DIR/ (looked for $CURRENT_TAG.md / $VERSION.md),"
+          echo "falling back to auto-generated git commit log."
 
-        echo "Sending prompt to AI model..."
+          # 获取上一个标签，确定本次发布包含的提交范围
+          PREVIOUS_TAG=$(git tag --sort=-v:refname | head -n 2 | tail -n 1)
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found. Using all commits."
+            RANGE=""
+          else
+            echo "Previous tag is: $PREVIOUS_TAG"
+            RANGE="$PREVIOUS_TAG..$CURRENT_TAG"
+          fi
 
-        # 调用 GitHub Models API
-        AI_RESPONSE=$(curl -s "https://models.github.ai/inference/chat/completions" \
-             -H "Content-Type: application/json" \
-             -H "Authorization: Bearer $GITHUB_TOKEN" \
-             -d "$JSON_PAYLOAD")
+          COMMIT_COUNT=$(git rev-list --count ${RANGE:-HEAD})
 
-        # =======================================================
-        # === 新增的调试步骤：打印从 API 收到的原始响应 ===
-        echo "--- Raw AI Response Start ---"
-        echo "$AI_RESPONSE"
-        echo "--- Raw AI Response End ---"
-        # =======================================================
+          # 生成友好的 Markdown 兜底内容
+          {
+            echo "## 📦 $CURRENT_TAG"
+            echo ""
+            echo "> 本次发布未提供专门的发布说明（未找到 \`$NOTES_DIR/$CURRENT_TAG.md\`），以下内容由提交记录自动生成。"
+            echo ""
+            if [ "$COMMIT_COUNT" -gt 0 ]; then
+              echo "### 提交记录（共 $COMMIT_COUNT 次）"
+              echo ""
+              # 每条记录包含：短哈希、提交说明、作者、日期
+              git log ${RANGE:-HEAD} --date=short \
+                --pretty=format:"- \`%h\` %s  <br/>_&nbsp;&nbsp;&nbsp;&nbsp;%an · %ad_"
+              echo ""
+            else
+              echo "本次标签与上一版本之间没有新的提交记录。"
+            fi
+          } > "$BODY_FILE"
+        fi
 
-        # 从 AI 响应中提取内容，并设置为 step 的输出
-        RELEASE_BODY=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content')
-        
-        echo "Generated Release Notes:"
-        echo "$RELEASE_BODY"
-        
-        # 将最终的 release body 设置为 step 的输出，以便后续步骤使用
-        echo "release_body<<EOF" >> $GITHUB_OUTPUT
-        echo "$RELEASE_BODY" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        echo "------------- Release Notes -------------"
+        cat "$BODY_FILE"
+        echo ""
+        echo "-----------------------------------------"
+
+        # 将最终内容写入 step 输出（使用唯一分隔符，避免与正文冲突）
+        {
+          echo "release_body<<RELEASE_NOTES_EOF"
+          cat "$BODY_FILE"
+          echo "RELEASE_NOTES_EOF"
+        } >> "$GITHUB_OUTPUT"
 
     # ------------------------------------------------------------------
     # 发布到 PyPI 和 GitHub Release 的步骤
@@ -159,10 +133,10 @@ jobs:
         pip install twine
         twine upload dist/*
 
-    - name: Create GitHub Release with AI Notes
+    - name: Create GitHub Release with Notes
       uses: softprops/action-gh-release@v1
       with:
-        # 使用上一步 AI 生成的内容作为 Release 的 body
-        body: ${{ steps.ai_release_notes.outputs.release_body }}
+        # 使用准备好的发布说明（手写文件优先，git 提交记录兜底）
+        body: ${{ steps.prepare_release_notes.outputs.release_body }}
         # 上传打包好的文件
         files: dist/*
