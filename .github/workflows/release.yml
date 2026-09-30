@@ -194,7 +194,7 @@ jobs:
 
     - name: Create GitHub Release with Notes
       if: github.event_name == 'push' || inputs.publish == true
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       with:
         # 手动发布时触发 ref 是分支，必须显式指定要发布的版本标签
         tag_name: ${{ steps.prepare_release_notes.outputs.release_tag }}
