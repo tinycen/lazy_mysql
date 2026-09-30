@@ -6,7 +6,23 @@ on:
   push:
     tags:
       - 'v*'  # 仅在推送 v* 格式的标签时触发 (e.g., v1.0.0, v1.2.3)
+  # 允许在 GitHub Actions 页面手动运行：
+  # 默认干跑（只构建、测试、预览 Release Notes）；勾选 publish 后才正式发布。
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '要预览/发布的版本号，填 0.7.5 或 v0.7.5 均可；仅预览时可留空'
+        required: false
+        type: string
+      publish:
+        description: '勾选 = 正式发布（上传 PyPI 并创建 GitHub Release）；不勾 = 仅预览，不发布'
+        required: false
+        type: boolean
+        default: false
 
+# 触发方式：
+#   1. 推送 v* 标签     —— 完整流程：构建 → 测试 → 发布 PyPI → 创建 GitHub Release
+#   2. Actions 页手动运行 —— 默认干跑预览；勾选 publish 并填好版本号后等同正式发布
 # 权限设置：
 # contents: write - 允许创建 GitHub Release
 # Release Notes 直接从 docs/release_notes/<版本>.md 读取，无任何外部 AI 依赖
@@ -53,12 +69,36 @@ jobs:
     - name: 1. Prepare release notes
       id: prepare_release_notes
       run: |
-        # 当前标签（如 v0.7.4），以及去掉 v 前缀的版本号（如 0.7.4）
-        CURRENT_TAG=${{ github.ref_name }}
+        # 目标版本：手动运行时优先使用输入框中的版本号，否则使用触发 ref（推送 tag 时即该 tag）
+        INPUT_VERSION="${{ github.event.inputs.version }}"
+        PUBLISH="${{ github.event.inputs.publish }}"
+
+        # 安全校验：手动运行且要求正式发布时，必须明确填写版本号，
+        # 否则 CURRENT_TAG 会变成分支名（如 main），导致错误发布
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
+           && [ "$PUBLISH" = "true" ] && [ -z "$INPUT_VERSION" ]; then
+          echo "::error::勾选了正式发布，但未填写版本号。请填写版本号（如 0.7.5）后重新运行。"
+          exit 1
+        fi
+
+        if [ -n "$INPUT_VERSION" ]; then
+          # 兼容 0.7.5 与 v0.7.5 两种输入：先去掉可能存在的 v 前缀，再统一补上
+          CURRENT_TAG="v${INPUT_VERSION#v}"
+        else
+          CURRENT_TAG=${{ github.ref_name }}
+        fi
+        # 去掉 v 前缀的纯版本号（如 0.7.4）
         VERSION=${CURRENT_TAG#v}
         NOTES_DIR="docs/release_notes"
 
         echo "Current tag is: $CURRENT_TAG"
+
+        # 输出规范化后的版本标签，供后续创建 Release 时明确指定 tag
+        echo "release_tag=$CURRENT_TAG" >> "$GITHUB_OUTPUT"
+
+        if [ "$PUBLISH" = "true" ]; then
+          echo "::warning::本次手动运行将正式发布（上传 PyPI 并创建 GitHub Release）。"
+        fi
 
         # 按优先级查找手写的发布说明文件
         NOTES_FILE=""
@@ -80,19 +120,36 @@ jobs:
 
           # 获取上一个标签，确定本次发布包含的提交范围
           PREVIOUS_TAG=$(git tag --sort=-v:refname | head -n 2 | tail -n 1)
-          if [ -z "$PREVIOUS_TAG" ]; then
-            echo "No previous tag found. Using all commits."
-            RANGE=""
+
+          # 范围终点：目标版本是已存在的 ref（正式发布的 tag）时用它本身；
+          # 若 ref 尚不存在（典型场景：打 tag 前手动预览），则回退到当前检出代码的 HEAD
+          if git rev-parse -q --verify "${CURRENT_TAG}^{commit}" >/dev/null; then
+            RANGE_TARGET="$CURRENT_TAG"
           else
-            echo "Previous tag is: $PREVIOUS_TAG"
-            RANGE="$PREVIOUS_TAG..$CURRENT_TAG"
+            echo "Ref '$CURRENT_TAG' 尚不存在，使用当前 HEAD 作为提交范围终点。"
+            RANGE_TARGET="HEAD"
           fi
 
-          COMMIT_COUNT=$(git rev-list --count ${RANGE:-HEAD})
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found. Using all commits."
+            COMMIT_RANGE="$RANGE_TARGET"
+          else
+            echo "Previous tag is: $PREVIOUS_TAG"
+            COMMIT_RANGE="$PREVIOUS_TAG..$RANGE_TARGET"
+          fi
+
+          COMMIT_COUNT=$(git rev-list --count "$COMMIT_RANGE")
+
+          # 手动干跑时在标题上明确标识，避免与正式 Release 内容混淆；
+          # 勾选了 publish 的手动运行等同正式发布，不加预览标识
+          TITLE="## 📦 $CURRENT_TAG"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "$PUBLISH" != "true" ]; then
+            TITLE="## 📦 $CURRENT_TAG（手动预览，不会实际发布）"
+          fi
 
           # 生成友好的 Markdown 兜底内容
           {
-            echo "## 📦 $CURRENT_TAG"
+            echo "$TITLE"
             echo ""
             echo "> 本次发布未提供专门的发布说明（未找到 \`$NOTES_DIR/$CURRENT_TAG.md\`），以下内容由提交记录自动生成。"
             echo ""
@@ -100,7 +157,7 @@ jobs:
               echo "### 提交记录（共 $COMMIT_COUNT 次）"
               echo ""
               # 每条记录包含：短哈希、提交说明、作者、日期
-              git log ${RANGE:-HEAD} --date=short \
+              git log "$COMMIT_RANGE" --date=short \
                 --pretty=format:"- \`%h\` %s  <br/>_&nbsp;&nbsp;&nbsp;&nbsp;%an · %ad_"
               echo ""
             else
@@ -125,7 +182,9 @@ jobs:
     # 发布到 PyPI 和 GitHub Release 的步骤
     # ------------------------------------------------------------------
 
+    # 以下两步在「推送 v* 标签」或「手动运行且勾选 publish」时执行
     - name: Publish to PyPI
+      if: github.event_name == 'push' || inputs.publish == true
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
@@ -134,8 +193,11 @@ jobs:
         twine upload dist/*
 
     - name: Create GitHub Release with Notes
+      if: github.event_name == 'push' || inputs.publish == true
       uses: softprops/action-gh-release@v1
       with:
+        # 手动发布时触发 ref 是分支，必须显式指定要发布的版本标签
+        tag_name: ${{ steps.prepare_release_notes.outputs.release_tag }}
         # 使用准备好的发布说明（手写文件优先，git 提交记录兜底）
         body: ${{ steps.prepare_release_notes.outputs.release_body }}
         # 上传打包好的文件
