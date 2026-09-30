@@ -90,10 +90,10 @@ bash 解析到 `for ...; do` 后期望 `done`，读到 `fi` 即报 `syntax error
 
 | 文件 | 说明 |
 |------|------|
-| [`.github/workflows/release.yml`](../../.github/workflows/release.yml#L105-L110) | 第 110 行 `fi` → `done`，修复 for 循环闭合 |
+| [`.github/workflows/release.yml`](../../../../.github/workflows/release.yml#L105-L110) | 第 110 行 `fi` → `done`，修复 for 循环闭合 |
 
 ## 关联问题
 
-- [Release 工作流支持手动干跑预览与发布开关](../features/2026-09-30-Release工作流支持手动干跑预览与发布开关.md)
+- [Release 工作流支持手动干跑预览与发布开关](2026-09-30-Release工作流支持手动干跑预览与发布开关.md)
 - [GitHub Models 退役并重构为本地发布说明方案](2026-09-30-GitHubModels退役导致Release工作流失败并重构为本地发布说明方案.md)
-- [action-gh-release 升级 v3 消除 Node 20 弃用警告](../config/2026-09-30-action-gh-release升级v3消除Node20弃用警告.md)
+- [action-gh-release 升级 v3 消除 Node 20 弃用警告](2026-09-30-action-gh-release升级v3消除Node20弃用警告.md)

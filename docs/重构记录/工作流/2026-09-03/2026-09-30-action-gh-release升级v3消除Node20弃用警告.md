@@ -25,7 +25,7 @@ https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-action
 
 ## 解决方案
 
-[release.yml 第 197 行](../../.github/workflows/release.yml#L197) 升级主版本：
+[release.yml 第 197 行](../../../../.github/workflows/release.yml#L197) 升级主版本：
 
 ```diff
 -      uses: softprops/action-gh-release@v1
@@ -54,10 +54,10 @@ https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-action
 
 | 文件 | 说明 |
 |------|------|
-| [`.github/workflows/release.yml`](../../.github/workflows/release.yml#L195-L204) | `softprops/action-gh-release` 由 v1 升级至 v3 |
+| [`.github/workflows/release.yml`](../../../../.github/workflows/release.yml#L195-L204) | `softprops/action-gh-release` 由 v1 升级至 v3 |
 
 ## 关联问题
 
-- [Release 工作流支持手动干跑预览与发布开关](../features/2026-09-30-Release工作流支持手动干跑预览与发布开关.md)
-- [GitHub Models 退役并重构为本地发布说明方案](../fixed_bugs/2026-09-30-GitHubModels退役导致Release工作流失败并重构为本地发布说明方案.md)
-- [for 循环误用 fi 闭合导致 bash 语法错误](../fixed_bugs/2026-09-30-release工作流for循环误用fi闭合导致bash语法错误.md)
+- [Release 工作流支持手动干跑预览与发布开关](2026-09-30-Release工作流支持手动干跑预览与发布开关.md)
+- [GitHub Models 退役并重构为本地发布说明方案](2026-09-30-GitHubModels退役导致Release工作流失败并重构为本地发布说明方案.md)
+- [for 循环误用 fi 闭合导致 bash 语法错误](2026-09-30-release工作流for循环误用fi闭合导致bash语法错误.md)

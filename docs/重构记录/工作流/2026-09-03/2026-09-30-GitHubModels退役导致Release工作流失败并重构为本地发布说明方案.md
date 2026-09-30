@@ -72,7 +72,7 @@ RELEASE_BODY=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content')
 
 用单个 `Prepare release notes` 步骤替代原有的「取 commit log → curl 调模型 → jq 解析」三步，同时删除了 Node/Copilot/jq 全部依赖与失效的 `models: read` 权限。
 
-核心逻辑（[release.yml 第 103-167 行](../../.github/workflows/release.yml#L103-L167)）：
+核心逻辑（[release.yml 第 103-167 行](../../../../.github/workflows/release.yml#L103-L167)）：
 
 ```bash
 # 1. 查找手写文件
@@ -114,12 +114,12 @@ git log "$COMMIT_RANGE" --date=short \
 
 | 文件 | 说明 |
 |------|------|
-| [`.github/workflows/release.yml`](../../.github/workflows/release.yml) | 删除 AI 调用，新增本地文件读取与 git log 兜底逻辑 |
-| [`docs/release_notes/README.md`](../../docs/release_notes/README.md) | 发布说明目录的使用说明与模板 |
+| [`.github/workflows/release.yml`](../../../../.github/workflows/release.yml) | 删除 AI 调用，新增本地文件读取与 git log 兜底逻辑 |
+| [`docs/release_notes/README.md`](../../../release_notes/README.md) | 发布说明目录的使用说明与模板 |
 | `docs/release_notes/v<版本>.md` | 各版本手写发布说明（按版本号新建） |
 
 ## 关联问题
 
-- [Release 工作流支持手动干跑预览与发布开关](../features/2026-09-30-Release工作流支持手动干跑预览与发布开关.md)
+- [Release 工作流支持手动干跑预览与发布开关](2026-09-30-Release工作流支持手动干跑预览与发布开关.md)
 - [for 循环误用 fi 闭合导致 bash 语法错误](2026-09-30-release工作流for循环误用fi闭合导致bash语法错误.md)
-- [action-gh-release 升级 v3 消除 Node 20 弃用警告](../config/2026-09-30-action-gh-release升级v3消除Node20弃用警告.md)
+- [action-gh-release 升级 v3 消除 Node 20 弃用警告](2026-09-30-action-gh-release升级v3消除Node20弃用警告.md)
