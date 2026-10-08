@@ -1,4 +1,5 @@
 import os
+import shutil
 import sqlparse
 from .validate import validate_table_name
 from ..executor import SQLExecutor
@@ -228,6 +229,7 @@ def tables_md(executor: SQLExecutor, table_names=None, save_dir=None, self_close
     批量导出表结构和视图结构为md格式文件
     - 表导出到 save_dir 目录
     - 视图导出到 save_dir/views 子目录
+    - 导出前会先清空 save_dir，避免历史遗留文件污染数据
     :param executor: SQLExecutor 实例
     :param table_names: 表名列表，如果为None或空列表则导出所有表和视图
     :param save_dir: 保存目录路径，默认为当前目录下的table_docs文件夹
@@ -239,16 +241,12 @@ def tables_md(executor: SQLExecutor, table_names=None, save_dir=None, self_close
         if save_dir is None:
             save_dir = "table_docs"
 
-        # 创建保存目录
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-
-        # 获取所有表和视图名
+        # 获取所有表和视图名（先完成数据库查询，查询失败时不清空已有文档）
         if table_names is None or len(table_names) == 0:
             executor.execute("SHOW FULL TABLES", self_close=False)
             all_rows = executor.mycursor.fetchall()
             table_names = [row[0] for row in all_rows]
-        
+
         if not table_names:
             print("No tables found.")
             return {'tables': [], 'views': []}
@@ -262,13 +260,19 @@ def tables_md(executor: SQLExecutor, table_names=None, save_dir=None, self_close
             else:
                 tables_list.append(name)
 
+        # 导出前清空并重建保存目录，避免历史遗留文件污染导出数据
+        if os.path.exists(save_dir):
+            shutil.rmtree(save_dir, ignore_errors=True)
+        os.makedirs(save_dir, exist_ok=True)
+        print(f"Cleared and recreated directory: {save_dir}")
+
         exported_tables = []
         exported_views = []
 
         # 创建视图子目录
         views_dir = os.path.join(save_dir, "views")
-        if views_list and not os.path.exists(views_dir):
-            os.makedirs(views_dir)
+        if views_list:
+            os.makedirs(views_dir, exist_ok=True)
 
         # 导出每个表的结构
         for table_name in tables_list:
