@@ -55,6 +55,34 @@
 - 实测：交给 lazy_mysql 的 `execute()` / `query()` / `fetch_format()` 直接执行时，`{}` **不会被任何一层解析**，不会引发异常（I）。
 - 但仍**必须禁止**：一旦 SQL 文本后续被 `str.format()` / f-string 模板化（下游项目常见做法），`{}` 就变成模板占位符 —— 键存在则注释被静默篡改，键不存在或空 `{}` 则直接抛 `KeyError` / `IndexError`（J）。与其赌调用链，不如从源头不写。
 
+### 真实案例：模板标记同时出现在注释与正文，`str.replace` 波及注释
+
+一个下游项目踩过的变体（0.7.4 实测复现），细节与上文 I/J 均不同，单独记录：
+
+**场景**：`.sql` 模板文件用**独占一行**的 `{filters}` 标记占位，但头部注释解释标记用途时也写了 `{filters}` 字样。脚本自行读文件后用 `sql.replace('{filters}', 片段)` 做**全文替换**——`str.replace` 替换所有出现位置，含 `%s` 的 where 片段被同时注入正文标记处与注释中。
+
+**后果**：传给 `execute()` / `fetch_format()` 的是内联 SQL 文本（非 `.sql` 路径），`resolve_sql()` 对文本原样返回、**不做注释剥离**；占位符预检与驱动行为对齐，`--` 注释内的 `%s` 照常计数（仅 `/*! ... */` 与 `/*+ ... */` 区间排除），于是占位符数 > 参数数，抛：
+
+```
+SQLPlaceholderError: [E101] 第N行第M列: SQL 中包含 2 个 '%s' 占位符，但仅提供了 1 个参数
+```
+
+典型特征是**条件性崩溃**：带过滤条件的调用全部失败，无 params 的调用（预检跳过）却正常——问题极易被误判为「参数传错了」。
+
+**规避**（任选其一，前两条最简单）：
+
+1. 标记不要出现在注释里，注释用文字描述（如「filters 标记」）代替原样引用；
+2. 替换时用**行锚定正则**只命中标记行，并用 lambda 承载替换文本（避免片段中的 `\` 被当作 `re.sub` 替换转义）：
+   ```python
+   sql = re.sub(r'(?m)^\{filters\}$', lambda _: '\n'.join(clauses), raw_sql)
+   ```
+3. 先剥离注释再做模板替换（0.7.4 起内置 `strip_sql_comments`）——注释中的重复标记随之消失，全文替换天然只剩正文一处：
+   ```python
+   from lazy_mysql.tools import strip_sql_comments
+   sql = strip_sql_comments(raw_sql)[0]
+   sql = sql.replace('{filters}', '\n'.join(clauses))
+   ```
+
 ### 必须遵守的规则
 
 1. 注释中**禁止**出现 `%`，尤其是 `%s`、`%(name)s`、`%(name)d`
@@ -63,6 +91,7 @@
 4. `%%` **不是**驱动层转义（实测无效），需要字面量 `%` 请参数化：`LIKE %s` + `params=('%关键字%',)`
 5. `DATE_FORMAT` 等含 `%s`（秒）的格式串，**必须改成参数传入**（见示例 E）
 6. 需要表达百分比语义时用中文替代：`折扣 50% 以上` → `折扣 50 个点以上` / `discount > 0.5`
+7. 对 SQL 做模板替换时，标记**不得**同时出现在注释与正文中；全文 `str.replace` 需改为行锚定替换（见上文[真实案例](#真实案例模板标记同时出现在注释与正文strreplace-波及注释)）
 
 ### 正确 / 错误写法对照
 
@@ -103,6 +132,17 @@ SELECT * FROM orders WHERE status = %s;
 -- ✅ 正确：注释只写中文说明
 -- 动态拼接：表名与条件由调用方组装
 SELECT * FROM orders WHERE status = %s;
+```
+
+```python
+# ❌ 错误：标记同时在注释与正文出现，全文 replace 把含 %s 的片段注入注释
+# -- where 子句末尾的 {filters} 标记由脚本替换        ← 注释里也写了 {filters}
+# where 1=1
+# {filters}                                          ← 正文标记
+sql = raw_sql.replace('{filters}', 'and state = %s')  # 两处都被替换 → 预检 E101
+
+# ✅ 正确：行锚定正则只命中独占一行的标记
+sql = re.sub(r'(?m)^\{filters\}$', lambda _: '\n'.join(clauses), raw_sql)
 ```
 
 ### 可选：入库前的自检工具（0.7.4 起内置）
@@ -400,6 +440,9 @@ executor.execute("INSERT INTO users (name, age) VALUES (%s, %s)", ('张三', 25)
 4. **错误处理**: 如果文件不存在或无法读取，会抛出相应的文件操作异常
 5. **⚠️ 注释禁止占位符**: 0.7.4 起读取文件时默认剥离注释，注释里的 `%s` / `%(name)s` 不会再被计入占位符数量；
    但作为编写规范，**SQL 文件的注释中仍禁止出现 `%` 和 `{}`**，详见 [编写 .sql 文件的红线](#sql-placeholder-rule)
+6. **⚠️ 内联文本不做注释剥离**: `strip_comments` 仅对文件路径生效，已是 SQL 文本的字符串原样返回（幂等契约）；
+   此时 `--` 注释内的 `%s` 仍会被占位符预检计入（与驱动行为对齐），下游做模板替换时尤其容易踩坑，
+   见 [真实案例：模板标记同时出现在注释与正文](#真实案例模板标记同时出现在注释与正文strreplace-波及注释)
 
 ### 相关函数
 - [load_sql](#load_sql---载入sql文件) - 直接从文件读取 SQL 内容
